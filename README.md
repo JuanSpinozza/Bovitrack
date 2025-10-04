@@ -34,7 +34,7 @@ Desarrollada con **React Native + TypeScript**, utilizando **Expo** y **Firebase
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/tuusuario/bovitrack.git
+git clone https://github.com/JuanSpinozza/bovitrack.git
 cd bovitrack
 npm install
 ```
