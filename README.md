@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# 🐄 BoviTrack
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**BoviTrack** es una aplicación móvil diseñada para facilitar la **gestión ganadera** de forma eficiente y centralizada. Con ella, los ganaderos pueden llevar el control de sus animales, tratamientos, eventos reproductivos y más, desde cualquier lugar.
 
-## Get started
+Desarrollada con **React Native + TypeScript**, utilizando **Expo** y **Firebase** para autenticación, base de datos en tiempo real, almacenamiento y persistencia de sesión.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 🚀 Funcionalidades principales
 
-2. Start the app
+- 📋 Registro y seguimiento de ganado
+- 🧬 Control de eventos reproductivos
+- 💉 Gestión de tratamientos y vacunas
+- 📊 Estadísticas básicas de manejo
+- 🔒 Autenticación con Firebase Auth
+- 💾 Persistencia de sesión
+- ☁️ Almacenamiento en la nube con Firebase
+- 📱 Soporte para Android e iOS
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🛠️ Tecnologías
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [React Native](https://reactnative.dev/)
+- [Expo](https://expo.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Firebase (Auth, Firestore, Storage)](https://firebase.google.com/)
+- [React Navigation](https://reactnavigation.org/)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## ⚙️ Configuración del proyecto
 
-When you're ready, run:
+### 1. Clonar el repositorio
 
 ```bash
-npm run reset-project
+git clone https://github.com/tuusuario/bovitrack.git
+cd bovitrack
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Recursos adicionales
 
-## Learn more
+Documentación de Expo https://docs.expo.dev/
+Documentación de Firebase https://firebase.google.com/docs
+Guía de React Navigation https://reactnavigation.org/docs/getting-started/
 
-To learn more about developing your project with Expo, look at the following resources:
+🤝 Contribuciones
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+¿Tienes ideas o quieres mejorar la app? ¡Eres bienvenido a contribuir! Abre un issue o haz un PR.
 
-## Join the community
+👨‍🌾 Hecho por y para ganaderos
 
-Join our community of developers creating universal apps.
+BoviTrack fue creada con el objetivo de digitalizar el manejo ganadero, facilitar la toma de decisiones y ahorrar tiempo a los productores.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+👥 Contribuyentes
+
+👨‍💻 Juan Espinosa
+
+👨‍💻 Andrés López
+
+👨‍💻 Andrés Patarroyo
+
+👨‍💻 Santiago Torres
