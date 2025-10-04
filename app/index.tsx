@@ -31,8 +31,7 @@ export default function LogInScreen() {
   const [loading, setLoading] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: '364928939451-7torjuj68jdpp1tmoal9u11t034tc92k.apps.googleusercontent.com',
-    androidClientId: '786327247301-pt91aaqv9tgnccdep353itrlkat4k9fp.apps.googleusercontent.com',
+    
   });
 
   useEffect(() => {
