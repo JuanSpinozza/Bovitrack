@@ -3,11 +3,10 @@ import {
     GoogleAuthProvider,
     onAuthStateChanged,
     signInWithEmailAndPassword,
-    signInWithPopup,
+    signInWithCredential,
     signOut,
 } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
-import { Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -28,7 +27,6 @@ export const validatePassword = (password: string) => {
   export const registerWithEmail = async (email: string, password: string) => {
     const validation = validatePassword(password);
     if (!validation.valid) {
-      Alert.alert('Error', validation.error);
       return { success: false, error: validation.error };
     }
     
@@ -36,7 +34,6 @@ export const validatePassword = (password: string) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
     } catch (error) {
-      Alert.alert('Error', (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   };
@@ -46,18 +43,17 @@ export const validatePassword = (password: string) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return { success: true, user: userCredential.user };
     } catch (error) {
-      Alert.alert('Error', (error as Error).message);
       return { success: false, error: (error as Error).message };
     }
   };
   
-  export const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
+  export const loginWithGoogle = async (idToken: string) => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      return { success: true, user: result.user };
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        return { success: true, user: result.user };
     } catch (error) {
-      return { success: false, error: (error as Error).message };
+        return { success: false, error: (error as Error).message };
     }
   };
   

@@ -7,9 +7,11 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
-  Image,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -31,7 +33,6 @@ export default function LogInScreen() {
   const [loading, setLoading] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    
   });
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function LogInScreen() {
     }
   };
 
-  const handleGoogleLogin = async (idToken) => {
+  const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     const result = await loginWithGoogle(idToken);
     setLoading(false);
@@ -87,86 +88,107 @@ export default function LogInScreen() {
       <Fondo w={width} h={height} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <MotiView
-              from={{ opacity: 0, translateY: -40 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 800 }}
-              style={styles.header}
-            >
-              <Bovi width={200} height={200} />
-              <Text style={styles.title}>BoviTrack</Text>
-            </MotiView>
-          </View>
-          <View style={styles.formContainer}>
-            <Text style={styles.subtitle}>¡Bienvenido!</Text>
-            <Text style={styles.description}>
-              Inicia sesión con tu correo electrónico{'\n'}
-              y contraseña para ingresar en la aplicación
-            </Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.content}>
+              <View style={styles.header}>
+                <MotiView
+                  from={{ opacity: 0, translateY: -40 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: 'timing', duration: 800 }}
+                  style={styles.header}
+                >
+                  <Bovi width={200} height={200} />
+                  <Text style={styles.title}>BoviTrack</Text>
+                </MotiView>
+              </View>
+              <View style={styles.formContainer}>
+                <Text style={styles.subtitle}>¡Bienvenido!</Text>
+                <Text style={styles.description}>
+                  Inicia sesión con tu correo electrónico{'\n'}
+                  y contraseña para ingresar en la aplicación
+                </Text>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#8B7355"
-              placeholder="Correo electrónico"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#8B7355"
-              placeholder="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              keyboardType="default"
-              autoCapitalize="none"
-              editable={!loading}
-              secureTextEntry
-            />
+                <TextInput
+                  style={styles.input}
+                  placeholderTextColor="#8B7355"
+                  placeholder="Correo electrónico"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholderTextColor="#8B7355"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChangeText={setPassword}
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  editable={!loading}
+                  secureTextEntry
+                />
 
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              activeOpacity={0.8}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Continuar</Text>
-              )}
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, loading && styles.buttonDisabled]}
+                  activeOpacity={0.8}
+                  onPress={handleLogin}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.buttonText}>Continuar</Text>
+                  )}
+                </TouchableOpacity>
 
 
-            <View style={styles.dividerContainer}>
-              <View style={styles.line} />
-              <Text style={styles.dividerText}>O</Text>
-              <View style={styles.line} />
+                <View style={styles.dividerContainer}>
+                  <View style={styles.line} />
+                  <Text style={styles.dividerText}>O</Text>
+                  <View style={styles.line} />
+                </View>
+
+
+
+                <TouchableOpacity
+                  style={[styles.googleButton, loading && styles.buttonDisabled]}
+                  activeOpacity={0.8}
+                  onPress={handleGooglePress}
+                  disabled={!request || loading}
+                >
+                  <AntDesign name="google" size={20} color="#3D2817" style={{ marginRight: 10 }} />
+                  <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.terms}>
+                  Al hacer clic en continuar, aceptas nuestros{' '}
+                  <Text style={styles.link}>Términos de servicio</Text> y{' '}
+                  <Text style={styles.link}>Política de privacidad</Text>
+                </Text>
+                <Text style={styles.registerText}>
+                  ¿No tienes cuenta?{' '}
+                  <Text
+                    style={styles.registerLink}
+                    onPress={() => router.push('/register')}
+                  >
+                    Regístrate aquí
+                  </Text>
+                </Text>
+              </View>
             </View>
-
-
-
-            <TouchableOpacity
-              style={[styles.googleButton, loading && styles.buttonDisabled]}
-              activeOpacity={0.8}
-              onPress={handleGooglePress}
-              disabled={!request || loading}
-            >
-              <AntDesign name="google" size={20} color="#3D2817" style={{ marginRight: 10 }} />
-              <Text style={styles.googleButtonText}>Continuar con Google</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.terms}>
-              Al hacer clic en continuar, aceptas nuestros{' '}
-              <Text style={styles.link}>Términos de servicio</Text> y{' '}
-              <Text style={styles.link}>Política de privacidad</Text>
-            </Text>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
@@ -175,6 +197,9 @@ export default function LogInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   fondo: {
     position: 'absolute',
@@ -306,5 +331,17 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  registerText: {
+    fontSize: 13,
+    color: '#6B5544',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+
+  registerLink: {
+    color: '#3D2817',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
