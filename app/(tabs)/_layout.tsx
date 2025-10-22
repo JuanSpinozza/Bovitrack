@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 
 export default function TabLayout() {
 
@@ -13,6 +12,27 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
+        }}
+      />
+
+      <Tabs.Screen
+        name="estadisticas"
+        options={{
+          title: 'Estadísticas',
+        }}
+      />
+
+      <Tabs.Screen
+        name="informacion"
+        options={{
+          title: 'Información',
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
         }}
       />
     </Tabs>
