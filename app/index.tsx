@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { AntDesign } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { MotiView } from 'moti';
+import { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  Dimensions,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import Bovi from '../assets/images/bovi.svg';
 import { Fondo } from '../components/ui/fondo';
-import { AntDesign } from '@expo/vector-icons';
-import { MotiView } from 'moti';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { loginWithEmail, loginWithGoogle } from '../services/authServices';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -33,6 +33,8 @@ export default function LogInScreen() {
   const [loading, setLoading] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: '364928939451-7torjuj68jdpp1tmoal9u11t034tc92k.apps.googleusercontent.com',
+    androidClientId: '786327247301-pt91aaqv9tgnccdep353itrlkat4k9fp.apps.googleusercontent.com',
   });
 
   useEffect(() => {

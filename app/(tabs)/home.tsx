@@ -12,10 +12,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <View>
-      <Text>Home</Text>
-      <Button onPress={handleLogOut} title="Salir" />
-    </View>   
+       
   );
 }
 
