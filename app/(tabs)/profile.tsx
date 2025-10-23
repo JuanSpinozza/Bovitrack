@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#003D5B',
+    color: '#005246',
   },
   profileSection: {
     backgroundColor: '#fff',
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#003D5B',
+    color: '#005246',
     marginBottom: 5,
   },
   userEmail: {

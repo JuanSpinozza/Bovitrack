@@ -7,7 +7,7 @@ export default function EstadisticasScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Estadísticas</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <Funnel color="#003D5B" size={24} />
+          <Funnel color="#005246" size={24} />
         </TouchableOpacity>
       </View>
 
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#003D5B',
+    color: '#005246',
   },
   filterButton: {
     width: 40,
