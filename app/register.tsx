@@ -22,7 +22,22 @@ import { MotiView } from 'moti';
 import { registerWithEmail, validatePassword } from '../services/authServices';
 import { AntDesign } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('screen');
+// Sistema de escalado responsive mejorado
+const { width, height } = Dimensions.get('window');
+const screenDimensions = Dimensions.get('screen');
+const isSmallDevice = height < 700;
+const isMediumDevice = height >= 700 && height < 850;
+
+// Escala basada en pantalla estándar
+const scale = (size: number) => (width / 375) * size;
+const verticalScale = (size: number) => (height / 812) * size;
+
+// Factor de moderación más agresivo para mejor adaptabilidad
+const moderateScale = (size: number, factor = 0.3) => 
+  size + (scale(size) - size) * factor;
+
+const moderateVerticalScale = (size: number, factor = 0.3) => 
+  size + (verticalScale(size) - size) * factor;
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -122,11 +137,15 @@ export default function RegisterScreen() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F5E6D3" />
-            <Fondo w={width} h={height} />
+            
+            {/* Fondo en posición absoluta para cubrir toda la pantalla */}
+            <View style={styles.backgroundContainer}>
+                <Fondo w={screenDimensions.width} h={screenDimensions.height} />
+            </View>
 
-            <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <KeyboardAvoidingView
-                    style={{ flex: 1 }}
+                    style={styles.keyboardView}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     keyboardVerticalOffset={0}
                 >
@@ -134,6 +153,7 @@ export default function RegisterScreen() {
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
+                        bounces={true}
                     >
                         <View style={styles.content}>
                             <View style={styles.header}>
@@ -143,7 +163,10 @@ export default function RegisterScreen() {
                                     transition={{ type: 'timing', duration: 700 }}
                                     style={styles.headerContent}
                                 >
-                                    <Bovi width={200} height={200} />
+                                    <Bovi 
+                                        width={isSmallDevice ? 150 : isMediumDevice ? 160 : 180} 
+                                        height={isSmallDevice ? 150 : isMediumDevice ? 160 : 180} 
+                                    />
                                     <Text style={styles.title}>Crear cuenta</Text>
                                 </MotiView>
                             </View>
@@ -153,6 +176,7 @@ export default function RegisterScreen() {
                                 <Text style={styles.description}>
                                     Regístrate para comenzar a gestionar tu ganado
                                 </Text>
+
                                 <View style={styles.inputWrapper}>
                                     <View style={inputContainerStyle(!!emailError)}>
                                         <TextInput
@@ -182,6 +206,7 @@ export default function RegisterScreen() {
                                         </MotiView>
                                     )}
                                 </View>
+
                                 <View style={styles.inputWrapper}>
                                     <View style={inputContainerStyle(!!passwordError)}>
                                         <TextInput
@@ -205,7 +230,7 @@ export default function RegisterScreen() {
                                         >
                                             <AntDesign
                                                 name={showPasswords ? 'eye' : 'eye-invisible'}
-                                                size={20}
+                                                size={moderateScale(20)}
                                                 color="#8B7355"
                                             />
                                         </TouchableOpacity>
@@ -222,6 +247,7 @@ export default function RegisterScreen() {
                                         </MotiView>
                                     )}
                                 </View>
+
                                 <View style={styles.inputWrapper}>
                                     <View style={inputContainerStyle(!!confirmError)}>
                                         <TextInput
@@ -245,7 +271,7 @@ export default function RegisterScreen() {
                                         >
                                             <AntDesign
                                                 name={showPasswords ? 'eye' : 'eye-invisible'}
-                                                size={20}
+                                                size={moderateScale(20)}
                                                 color="#8B7355"
                                             />
                                         </TouchableOpacity>
@@ -293,113 +319,147 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
+        backgroundColor: '#F5E6D3',
+    },
+    backgroundContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: screenDimensions.width,
+        height: screenDimensions.height,
+        zIndex: 0,
+    },
+    safeArea: {
+        flex: 1,
+        zIndex: 1,
+    },
+    keyboardView: {
+        flex: 1,
     },
     scrollContent: {
         flexGrow: 1,
-    },
-    safeArea: {
-        flex: 1
+        paddingHorizontal: moderateScale(24),
+        paddingBottom: moderateVerticalScale(40),
     },
     content: {
-        flex: 1, paddingHorizontal: 20
+        flex: 1,
+        justifyContent: 'center',
+        paddingVertical: moderateVerticalScale(20),
     },
     header: {
         alignItems: 'center',
-        marginTop: height * 0.02,
-        marginBottom: height * 0.015,
+        marginBottom: moderateVerticalScale(isSmallDevice ? 15 : 20),
     },
     headerContent: {
         alignItems: 'center',
     },
-    formContainer: {
-        flex: 1,
-        paddingTop: 8,
-    },
     title: {
-        fontSize: 54,
+        fontSize: moderateScale(isSmallDevice ? 42 : isMediumDevice ? 48 : 54),
         fontWeight: 'bold',
         color: '#2C1810',
         letterSpacing: -0.5,
         textShadowColor: 'rgba(255,255,255,0.8)',
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 4,
-        marginTop: 8,
+        marginTop: moderateVerticalScale(8),
+    },
+    formContainer: {
+        width: '100%',
     },
     subtitle: {
-        fontSize: 20,
+        fontSize: moderateScale(25),
         fontWeight: '600',
         color: '#2C1810',
-        marginBottom: 6,
+        marginBottom: moderateVerticalScale(6),
         textAlign: 'center',
+        textShadowColor: 'rgba(255,255,255,0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
     description: {
-        fontSize: 13,
-        color: '#6B5544',
-        marginBottom: 20,
-        lineHeight: 18,
+        fontSize: moderateScale(15),
+        color: '#000000ff',
+        marginBottom: moderateVerticalScale(20),
+        lineHeight: moderateScale(18),
         textAlign: 'center',
+        textShadowColor: 'rgba(148, 146, 146, 0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
     },
     inputWrapper: {
-        marginBottom: 30,
+        marginBottom: moderateVerticalScale(isSmallDevice ? 20 : 24),
     },
     inputContainer: {
         position: 'relative',
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateVerticalScale(12),
         borderWidth: 1.5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
     },
     input: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         color: '#2C1810',
         padding: 0,
         margin: 0,
     },
     inputWithIcon: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         color: '#2C1810',
-        paddingRight: 40,
+        paddingRight: moderateScale(40),
         padding: 0,
         margin: 0,
     },
     eyeButton: {
         position: 'absolute',
-        right: 12,
-        top: 10,
+        right: moderateScale(12),
+        top: moderateVerticalScale(12),
+        padding: moderateScale(4),
     },
     errorContainer: {
-        paddingTop: 5,
-        paddingHorizontal: 2,
+        paddingTop: moderateVerticalScale(5),
+        paddingHorizontal: moderateScale(2),
     },
     errorText: {
-        fontSize: 11.5,
+        fontSize: moderateScale(11.5),
         color: '#E05252',
         fontWeight: '500',
     },
-
     button: {
         backgroundColor: '#3D2817',
         borderRadius: 8,
-        paddingVertical: 13,
+        paddingVertical: moderateVerticalScale(14),
         alignItems: 'center',
-        marginTop: 6,
-        marginBottom: 14,
+        marginTop: moderateVerticalScale(6),
+        marginBottom: moderateVerticalScale(14),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
     },
     buttonText: {
         color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600'
+        fontSize: moderateScale(16),
+        fontWeight: '600',
     },
     buttonDisabled: {
-        opacity: 0.55
+        opacity: 0.55,
     },
-
     registerText: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         color: '#6B5544',
         textAlign: 'center',
+        marginTop: moderateVerticalScale(8),
+        marginBottom: moderateVerticalScale(20),
     },
     registerLink: {
         color: '#3D2817',
