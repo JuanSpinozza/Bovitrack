@@ -76,11 +76,6 @@ export default function ProfileScreen() {
           <View style={styles.toggle} />
         </View>
 
-        <View style={styles.menuItem}>
-          <Text style={styles.menuText}>Ubicación activa</Text>
-          <View style={styles.toggle} />
-        </View>
-
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuText}>Soporte</Text>
           <Text style={styles.arrow}>›</Text>
