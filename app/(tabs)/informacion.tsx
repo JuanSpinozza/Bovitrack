@@ -10,7 +10,7 @@ export default function InformacionScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Información</Text>
         <TouchableOpacity style={styles.addButton}>
-          <Plus color="#003D5B" size={28} />
+          <Plus color="#005246" size={28} />
         </TouchableOpacity>
       </View>
 
@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F0F2',
   },
   tabActive: {
-    backgroundColor: '#003D5B',
+    backgroundColor: '#005246',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#003D5B',
+    color: '#005246',
   },
   tabTextActive: {
     color: '#fff',
