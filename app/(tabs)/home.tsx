@@ -1,14 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 
 export default function HomeScreen() {
-  const data = [10, 15, 20, 18, 25, 30, 40]; // Datos de la gráfica
   const screenWidth = Dimensions.get('window').width;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resumen</Text>
@@ -17,7 +15,9 @@ export default function HomeScreen() {
       {/* Imagen destacada */}
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg' }}
+          source={{
+            uri: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg',
+          }}
           style={styles.image}
         />
         <View style={styles.cardTextContainer}>
@@ -27,52 +27,64 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Estadísticas */}
-      <View style={styles.statsContainer}>
+      {/* Estadísticas deslizables */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.statsScroll}
+        contentContainerStyle={styles.statsContainer}
+      >
         <View style={styles.statCard}>
           <Text style={styles.statValue}>16</Text>
           <Text style={styles.statLabel}>Vacas</Text>
           <Text style={styles.statSub}>+20% de peso</Text>
         </View>
+
         <View style={styles.statCard}>
           <Text style={styles.statValue}>5</Text>
           <Text style={styles.statLabel}>Toros</Text>
           <Text style={styles.statSub}>+33% de peso</Text>
         </View>
-      </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>10 353</Text>
+          <Text style={styles.statLabel}>MAU</Text>
+          <Text style={styles.statSub}>Usuarios activos mensuales</Text>
+        </View>
+      </ScrollView>
 
       {/* Producción de leche */}
       <View style={styles.chartContainer}>
-  <Text style={styles.chartTitle}>Producción de leche general</Text>
-  <LineChart
-    data={{
-      labels: ['1', '2', '3', '4', '5', '6', '7'],
-      datasets: [
-        {
-          data: [10, 15, 20, 18, 25, 30, 40],
-          color: () => '#005246',
-        },
-      ],
-    }}
-    width={screenWidth - 50}
-    height={180}
-    yAxisSuffix="L"
-    chartConfig={{
-      backgroundGradientFrom: '#fff',
-      backgroundGradientTo: '#fff',
-      color: () => '#005246',
-      labelColor: () => '#333',
-      strokeWidth: 3,
-      propsForDots: {
-        r: '5',
-        strokeWidth: '2',
-        stroke: '#005246',
-      },
-    }}
-    bezier
-    style={{ borderRadius: 12 }}
-  />
-</View>
+        <Text style={styles.chartTitle}>Producción de leche general</Text>
+        <LineChart
+          data={{
+            labels: ['1', '2', '3', '4', '5', '6', '7'],
+            datasets: [
+              {
+                data: [10, 15, 20, 18, 25, 30, 40],
+                color: () => '#005246',
+              },
+            ],
+          }}
+          width={screenWidth - 50}
+          height={180}
+          yAxisSuffix="L"
+          chartConfig={{
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            color: () => '#005246',
+            labelColor: () => '#333',
+            strokeWidth: 3,
+            propsForDots: {
+              r: '5',
+              strokeWidth: '2',
+              stroke: '#005246',
+            },
+          }}
+          bezier
+          style={{ borderRadius: 12 }}
+        />
+      </View>
 
       {/* Peso general */}
       <View style={styles.section}>
@@ -132,19 +144,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 12,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  statsScroll: {
     marginTop: 15,
+  },
+  statsContainer: {
+    paddingHorizontal: 16,
   },
   statCard: {
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 12,
     alignItems: 'center',
-    width: '40%',
+    width: 180,
     borderWidth: 1,
     borderColor: '#00524640',
+    marginRight: 12,
   },
   statValue: {
     fontSize: 22,
@@ -154,10 +168,13 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 16,
     color: '#333',
+    marginTop: 4,
   },
   statSub: {
     fontSize: 12,
     color: '#888',
+    marginTop: 4,
+    textAlign: 'center',
   },
   chartContainer: {
     backgroundColor: '#fff',
@@ -174,11 +191,6 @@ const styles = StyleSheet.create({
     color: '#005246',
     marginBottom: 5,
   },
-  chartLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
   section: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
@@ -188,6 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#00524640',
     alignItems: 'center',
+    marginBottom: 30,
   },
   sectionText: {
     fontSize: 14,
