@@ -1,10 +1,8 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AnimalCard from '../../components/AnimalCard';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import GuideCard from '../../components/GuideCard';
 import LocationCard from '../../components/LocationCard';
 export default function InformacionScreen() {
