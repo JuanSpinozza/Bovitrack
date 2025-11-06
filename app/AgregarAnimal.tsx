@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
+  Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+
+import { getFirestore, collection, getDocs, addDoc,serverTimestamp } from "firebase/firestore";
+import { app } from '../config/firebaseConfig';
+
+const db = getFirestore(app);
 
 export default function AgregarAnimalScreen() {
   const router = useRouter();
@@ -44,68 +40,52 @@ export default function AgregarAnimalScreen() {
     if (!result.canceled) setDocumentos(result.assets[0].uri);
   };
 
-  const handleGuardar = () => {
-    Alert.alert('✅ Animal agregado', `${form.nombre || 'Animal'} registrado correctamente.`);
-    router.back();
+  // 🟢 Guardar animal en Firestore
+  const handleGuardar = async () => {
+    try {
+      const nuevoAnimal = {
+        ...form,
+        sexo,
+        foto: foto || '',
+        documentos: documentos || '',
+        fechaRegistro: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, 'animales'), nuevoAnimal);
+
+      Alert.alert('✅ Animal agregado', `${form.Nombre || 'Animal'} registrado correctamente.`);
+      router.back();
+    } catch (error) {
+      console.error('❌ Error al guardar:', error);
+      Alert.alert('Error', 'No se pudo guardar el animal. Inténtalo de nuevo.');
+    }
   };
 
+  // 🔽 Campos según el sexo
   const camposMacho = [
-    'ID o código',
-    'Nombre',
-    'Número de arete',
-    'Tipo de animal',
-    'Raza',
-    'Color o señas particulares',
-    'Fecha de nacimiento',
-    'Origen',
-    'Peso actual',
-    'Fecha del último pesaje',
-    'Estado de salud',
-    'Vacunas aplicadas',
-    'Desparasitaciones',
-    'Tratamientos veterinarios',
-    'Enfermedades previas',
-    'Fecha de la última revisión veterinaria',
-    'Lote o potrero actual',
-    'Propietario o encargado',
-    'Fecha de ingreso al hato',
-    'Destino previsto',
+    'ID o código', 'Nombre', 'Número de arete', 'Tipo de animal', 'Raza',
+    'Color o señas particulares', 'Fecha de nacimiento', 'Origen', 'Peso actual',
+    'Fecha del último pesaje', 'Estado de salud', 'Vacunas aplicadas',
+    'Desparasitaciones', 'Tratamientos veterinarios', 'Enfermedades previas',
+    'Fecha de la última revisión veterinaria', 'Lote o potrero actual',
+    'Propietario o encargado', 'Fecha de ingreso al hato', 'Destino previsto',
   ];
 
   const camposHembra = [
-    'ID o código',
-    'Nombre',
-    'Número de arete',
-    'Tipo de animal',
-    'Raza',
-    'Color o señas particulares',
-    'Fecha de nacimiento',
-    'Origen',
-    'Peso actual',
-    'Fecha del último pesaje',
-    'Estado reproductivo',
-    'Fecha del último celo',
-    'Fecha de servicio o inseminación',
-    'ID del toro utilizado',
-    'Número de partos',
-    'Fecha del último parto',
-    'Estado de salud',
-    'Vacunas aplicadas',
-    'Desparasitaciones',
-    'Tratamientos veterinarios',
-    'Enfermedades previas',
-    'Fecha de la última revisión veterinaria',
-    'Lote o potrero actual',
-    'Propietario o encargado',
-    'Fecha de ingreso al hato',
-    'Destino previsto',
+    'ID o código', 'Nombre', 'Número de arete', 'Tipo de animal', 'Raza',
+    'Color o señas particulares', 'Fecha de nacimiento', 'Origen', 'Peso actual',
+    'Fecha del último pesaje', 'Estado reproductivo', 'Fecha del último celo',
+    'Fecha de servicio o inseminación', 'ID del toro utilizado', 'Número de partos',
+    'Fecha del último parto', 'Estado de salud', 'Vacunas aplicadas',
+    'Desparasitaciones', 'Tratamientos veterinarios', 'Enfermedades previas',
+    'Fecha de la última revisión veterinaria', 'Lote o potrero actual',
+    'Propietario o encargado', 'Fecha de ingreso al hato', 'Destino previsto',
   ];
 
   const campos = sexo === 'Macho' ? camposMacho : camposHembra;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 🟢 Barra superior */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft color="#fff" size={24} />
@@ -132,7 +112,7 @@ export default function AgregarAnimalScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Campos */}
+          {/* Campos dinámicos */}
           {campos.map((campo) => (
             <View key={campo} style={styles.inputGroup}>
               <Text style={styles.label}>{campo}</Text>
@@ -168,74 +148,110 @@ export default function AgregarAnimalScreen() {
   );
 }
 
+// 🎨 Estilos
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f9f9f9' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
   header: {
-    backgroundColor: '#005246',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingBottom: 12,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    backgroundColor: '#005246',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginRight: 10 },
-  backText: { color: '#fff', fontWeight: '600', fontSize: 16, marginLeft: 4 },
-  headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: 18, marginLeft: 10 },
-  container: { flex: 1, padding: 20 },
-  toggleContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 25, marginTop: 10 },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 16,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 16,
+  },
   toggleButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 2,
     borderColor: '#005246',
-    marginHorizontal: 6,
+    borderRadius: 8,
+    marginHorizontal: 5,
   },
-  activeToggle: { backgroundColor: '#005246' },
-  toggleText: { color: '#005246', fontWeight: '600', fontSize: 15 },
-  activeText: { color: '#fff' },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 14, fontWeight: '600', color: '#005246', marginBottom: 5 },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
+  activeToggle: {
+    backgroundColor: '#005246',
+  },
+  toggleText: {
+    color: '#005246',
+    fontWeight: '600',
+  },
+  activeText: {
+    color: '#fff',
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  label: {
+    fontWeight: '600',
     color: '#333',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#C8D1DC',
+    borderRadius: 8,
+    padding: 10,
+    color: '#000',
+    backgroundColor: '#fff',
   },
   imageButton: {
-    backgroundColor: '#E8F0F2',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  imageButtonText: { color: '#005246', fontWeight: '700', fontSize: 15 },
-  imagePreview: { width: '100%', height: 220, borderRadius: 12, marginTop: 10 },
-  fileName: { textAlign: 'center', marginTop: 5, color: '#005246', fontWeight: '500' },
-  saveButton: {
     backgroundColor: '#005246',
-    paddingVertical: 15,
-    borderRadius: 14,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  imageButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  fileName: {
+    marginTop: 8,
+    fontStyle: 'italic',
+    color: '#333',
+  },
+  saveButton: {
+    backgroundColor: '#008C73',
+    padding: 14,
+    borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
   },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
