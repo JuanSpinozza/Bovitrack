@@ -6,8 +6,11 @@ import { auth } from '../config/firebaseConfig';
 import { obtenerAnimalPorId, actualizarAnimal, eliminarAnimal } from '../services/animalesService';
 import { AnimalForm, Vaccine, Deworming, Treatment, Disease, WeightRecord } from '../interfaces/animal.types';
 import * as ImagePicker from 'expo-image-picker';
+import { convertirImagenABase64 } from '@/services/imagenesService';
+import { agregarAnimalALote } from '@/services/ubicacionesService';
+import { obtenerLotes } from '@/services/ubicacionesService';
 
-// Estados iniciales (los mismos que en useAnimalForm)
+// Estados iniciales - AGREGAR 'Estado productivo'
 const initialFormState: AnimalForm = {
   'ID o código': '',
   'Nombre': '',
@@ -22,6 +25,7 @@ const initialFormState: AnimalForm = {
   'Propietario o encargado': '',
   'Fecha de ingreso al hato': new Date().toISOString().split('T')[0],
   'Estado reproductivo': '',
+  'Estado productivo': '', // NUEVO CAMPO
   'Fecha del último celo': '',
   'Fecha de servicio o inseminación': '',
   'ID del toro utilizado': '',
@@ -31,6 +35,7 @@ const initialFormState: AnimalForm = {
   proposito: '',
 };
 
+// ... (los demás estados iniciales se mantienen igual)
 const initialVacunaState: Vaccine = {
   nombre_vacuna: '', 
   fecha_aplicacion: '', 
@@ -103,6 +108,8 @@ export const useAnimalFormEdit = () => {
   const [foto, setFoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lotes, setLotes] = useState<any[]>([]);
+  const [cargandoLotes, setCargandoLotes] = useState(true);
   
   // Estado del formulario principal
   const [form, setForm] = useState<AnimalForm>(initialFormState);
@@ -131,7 +138,7 @@ export const useAnimalFormEdit = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        cargarAnimal();
+        cargarDatosIniciales();
       } else {
         Alert.alert('Error', 'Debes estar autenticado para editar animales');
         router.back();
@@ -140,6 +147,28 @@ export const useAnimalFormEdit = () => {
 
     return unsubscribe;
   }, []);
+
+  const cargarDatosIniciales = async () => {
+    try {
+      await Promise.all([cargarAnimal(), cargarLotes()]);
+    } catch (error) {
+      console.error('Error al cargar datos iniciales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos');
+      router.back();
+    }
+  };
+
+  const cargarLotes = async () => {
+    try {
+      const lotesData = await obtenerLotes();
+      setLotes(lotesData);
+    } catch (error) {
+      console.error('Error al cargar lotes:', error);
+      Alert.alert('Error', 'No se pudieron cargar los lotes');
+    } finally {
+      setCargandoLotes(false);
+    }
+  };
 
   const cargarAnimal = async () => {
     try {
@@ -219,14 +248,25 @@ export const useAnimalFormEdit = () => {
 
     setSaving(true);
     try {
-      if (typeof animalId !== 'string') throw new Error('ID inválido');
+      let fotoBase64 = '';
       
-      // En edición, no convertimos la imagen a base64 porque ya está en la base de datos
-      // Solo se actualizaría si el usuario cambió la foto
+      // Solo convertir la imagen si es nueva (no es base64 ya)
+      if (foto && !foto.startsWith('data:image')) {
+        try {
+          fotoBase64 = await convertirImagenABase64(foto);
+        } catch (error) {
+          console.error('❌ Error al convertir imagen:', error);
+          Alert.alert('Advertencia', 'La imagen no pudo ser procesada, pero el animal se guardará sin foto.');
+        }
+      } else {
+        // Si ya es base64 o no hay foto, usar la existente
+        fotoBase64 = foto || '';
+      }
+
       const animalData = {
         ...form,
         sexo,
-        foto: foto || '', // Mantener la foto existente o vaciar si se eliminó
+        foto: fotoBase64,
         vacunas,
         desparasitaciones,
         tratamientos,
@@ -234,7 +274,18 @@ export const useAnimalFormEdit = () => {
         registrosPeso,
       };
 
+      if (typeof animalId !== 'string') throw new Error('ID inválido');
       await actualizarAnimal(animalId, animalData);
+
+      // Si se asignó un lote, agregar el animal al lote
+      if (form['Lote o potrero actual']) {
+        try {
+          await agregarAnimalALote(form['Lote o potrero actual'], animalId);
+        } catch (error) {
+          console.error('Error al asignar animal al lote:', error);
+          // No fallar la operación principal por esto
+        }
+      }
 
       Alert.alert(
         '✅ Animal actualizado', 
@@ -274,7 +325,7 @@ export const useAnimalFormEdit = () => {
     );
   };
 
-  // Funciones para agregar items a arrays (igual que en useAnimalForm)
+  // Funciones para agregar items a arrays
   const agregarVacuna = () => {
     if (!tempVacuna.nombre_vacuna || !tempVacuna.fecha_aplicacion) {
       Alert.alert('Error', 'Nombre y fecha son obligatorios');
@@ -343,6 +394,18 @@ export const useAnimalFormEdit = () => {
     if (tipo === 'peso') setRegistrosPeso(prev => prev.filter(item => item.id !== id));
   };
 
+  // Obtener opciones de lotes para el dropdown
+  const opcionesLote = lotes.map(lote => ({
+    label: `${lote.nombre} - ${lote.area}`,
+    value: lote.id,
+  }));
+
+  // Agregar opción "Sin lote"
+  opcionesLote.unshift({
+    label: 'Sin asignar a lote',
+    value: '',
+  });
+
   return {
     form,
     sexo,
@@ -364,6 +427,8 @@ export const useAnimalFormEdit = () => {
     tempTratamiento,
     tempEnfermedad,
     tempPeso,
+    lotes: opcionesLote,
+    cargandoLotes,
     handleChange,
     setSexo,
     setFoto,

@@ -13,34 +13,27 @@ import {
 import { Dropdown } from 'react-native-element-dropdown';
 import { Star, X, Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Hooks
 import { useAnimalForm } from '../hooks/useAnimalForm';
-
-// Componentes
 import Header from '../components/AnimalHeader';
 import PhotoSection from '../components/sections/PhotoSection';
 import HealthSection from '../components/sections/HealthSection';
 import ReproductiveSection from '../components/sections/ReproductiveSection';
-
-// Modales
 import WeightModal from '../components/modals/WeightModal';
 import VaccineModal from '../components/modals/VaccineModal';
 import DewormingModal from '../components/modals/DewormingModal';
 import TreatmentModal from '../components/modals/TreatmentModal';
 import DiseaseModal from '../components/modals/DiseaseModal';
-
-// Constantes
 import {
   camposBasicos,
   camposFechas,
   opcionesProposito,
   opcionesEstadoSalud,
-  opcionesLote,
 } from '../constants/animal.constant';
 
 export default function AgregarAnimalScreen() {
   const insets = useSafeAreaInsets();
+  
+  // ⚠️ TODOS LOS HOOKS DEBEN LLAMARSE INCONDICIONALMENTE AL INICIO
   const {
     form,
     sexo,
@@ -61,6 +54,8 @@ export default function AgregarAnimalScreen() {
     tempTratamiento,
     tempEnfermedad,
     tempPeso,
+    lotes, // ✅ Ya viene del hook useAnimalForm
+    cargandoLotes, // ✅ Ya viene del hook useAnimalForm
     handleChange,
     setSexo,
     setFoto,
@@ -88,13 +83,13 @@ export default function AgregarAnimalScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header />
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView 
-          style={styles.container} 
+        <ScrollView
+          style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -145,7 +140,7 @@ export default function AgregarAnimalScreen() {
                 />
               </View>
             ))}
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Propósito del Animal</Text>
               <Dropdown
@@ -201,8 +196,8 @@ export default function AgregarAnimalScreen() {
                 />
               </View>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.addItemButton}
               onPress={() => setModalPeso(true)}
             >
@@ -249,19 +244,24 @@ export default function AgregarAnimalScreen() {
           {/* Sección: Ubicación */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ubicación y Propietario</Text>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Lote o potrero</Text>
               <Dropdown
                 style={styles.dropdown}
-                data={opcionesLote}
+                data={lotes}
                 labelField="label"
                 valueField="value"
-                placeholder="Seleccione lote"
+                placeholder={cargandoLotes ? "Cargando lotes..." : "Seleccione lote"}
                 value={form['Lote o potrero actual']}
                 onChange={(item) => handleChange('Lote o potrero actual', item.value)}
+                disable={cargandoLotes}
               />
+              {cargandoLotes && (
+                <Text style={styles.helperText}>Cargando lotes disponibles...</Text>
+              )}
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Propietario o encargado</Text>
               <TextInput
@@ -284,8 +284,8 @@ export default function AgregarAnimalScreen() {
           </View>
 
           {/* Botón Guardar */}
-          <TouchableOpacity 
-            style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
             onPress={handleGuardar}
             disabled={loading}
           >
@@ -450,6 +450,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginTop: 4,
+    fontStyle: 'italic',
   },
   addItemButton: {
     flexDirection: 'row',

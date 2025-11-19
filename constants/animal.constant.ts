@@ -7,13 +7,16 @@ export const opcionesEstadoSalud = [
 
 export const opcionesEstadoReproductivo = [
   { label: 'Vacía', value: 'Vacía' },
-  { label: 'En servicio', value: 'En servicio' },
+  { label: 'En servicio (inseminada o monta reciente)', value: 'En servicio' },
   { label: 'En espera de diagnóstico', value: 'En espera de diagnóstico' },
   { label: 'Gestante', value: 'Gestante' },
-  { label: 'Parida', value: 'Parida' },
-  { label: 'Lactante', value: 'Lactante' },
-  { label: 'Secada', value: 'Secada' },
   { label: 'Problema reproductivo', value: 'Problema reproductivo' },
+];
+
+export const opcionesEstadoProductivo = [
+  { label: 'Lactante', value: 'Lactante' },
+  { label: 'Seca', value: 'Seca' },
+  { label: 'Recién parida', value: 'Recién parida' },
 ];
 
 export const opcionesLote = [

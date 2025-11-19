@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Plus, X } from 'lucide-react-native';
 import { useAnimalFormEdit } from '../hooks/useAnimalFormEdit';
 import EditHeader from '../components/EditHeader';
 import PhotoSection from '../components/sections/PhotoSection';
@@ -22,17 +24,18 @@ import VaccineModal from '../components/modals/VaccineModal';
 import DewormingModal from '../components/modals/DewormingModal';
 import TreatmentModal from '../components/modals/TreatmentModal';
 import DiseaseModal from '../components/modals/DiseaseModal';
+
 import {
   camposBasicos,
   camposFechas,
   opcionesProposito,
-  opcionesLote,
-} from '../constants/animal.constant.ts';
-import { router } from 'expo-router';
-import { Plus, X } from 'lucide-react-native';
+} from '../constants/animal.constant';
 
 export default function EditarAnimalScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  
+  // ⚠️ TODOS LOS HOOKS DEBEN LLAMARSE INCONDICIONALMENTE AL INICIO
   const {
     form,
     sexo,
@@ -54,6 +57,8 @@ export default function EditarAnimalScreen() {
     tempTratamiento,
     tempEnfermedad,
     tempPeso,
+    lotes, // ✅ Ya viene del hook useAnimalFormEdit
+    cargandoLotes, // ✅ Ya viene del hook useAnimalFormEdit
     handleChange,
     setSexo,
     setFoto,
@@ -79,6 +84,7 @@ export default function EditarAnimalScreen() {
     eliminarItem,
   } = useAnimalFormEdit();
 
+  // ⚠️ EL RETURN DE LOADING DEBE IR DESPUÉS DE TODOS LOS HOOKS
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -255,13 +261,17 @@ export default function EditarAnimalScreen() {
               <Text style={styles.label}>Lote o potrero</Text>
               <Dropdown
                 style={styles.dropdown}
-                data={opcionesLote}
+                data={lotes}
                 labelField="label"
                 valueField="value"
-                placeholder="Seleccione lote"
+                placeholder={cargandoLotes ? "Cargando lotes..." : "Seleccione lote"}
                 value={form['Lote o potrero actual']}
                 onChange={(item) => handleChange('Lote o potrero actual', item.value)}
+                disable={cargandoLotes}
               />
+              {cargandoLotes && (
+                <Text style={styles.helperText}>Cargando lotes disponibles...</Text>
+              )}
             </View>
             
             <View style={styles.inputGroup}>
@@ -471,6 +481,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginTop: 4,
+    fontStyle: 'italic',
   },
   addItemButton: {
     flexDirection: 'row',
