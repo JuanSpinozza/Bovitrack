@@ -12,15 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Edit3, 
-  MapPin, 
-  Users, 
-  Calendar, 
-  Plus, 
-  CheckCircle, 
-  Clock, 
+import {
+  ArrowLeft,
+  Edit3,
+  MapPin,
+  Users,
+  Calendar,
+  Plus,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Trash2,
   Square
@@ -76,10 +76,10 @@ export default function DetallesLote() {
 
       if (loteData) {
         const todosAnimales = await obtenerAnimales();
-        const animalesFiltrados = todosAnimales.filter(animal => 
+        const animalesFiltrados = todosAnimales.filter(animal =>
           loteData.animales.includes(animal.id)
         );
-        const animalesFormateados = animalesFiltrados.map(animal => 
+        const animalesFormateados = animalesFiltrados.map(animal =>
           formatearAnimalParaUI(animal)
         );
         setAnimalesEnLote(animalesFormateados);
@@ -100,8 +100,8 @@ export default function DetallesLote() {
       `¿Estás seguro de que quieres eliminar el lote "${lote.nombre}"? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
+        {
+          text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
             setEliminando(true);
@@ -127,33 +127,33 @@ export default function DetallesLote() {
   // Función para obtener la información del estado - MEJORADA
   const getEstadoInfo = (estado: EstadoLote) => {
     const estadoInfo = {
-      'Activo': { 
-        color: COLORS.success, 
+      'Activo': {
+        color: COLORS.success,
         backgroundColor: '#D1FAE5',
-        icon: <CheckCircle size={20} color={COLORS.success} />, 
+        icon: <CheckCircle size={20} color={COLORS.success} />,
         text: 'Activo',
         descripcion: 'Este lote está en uso activo para pastoreo o producción.'
       },
-      'En descanso / recuperación': { 
-        color: COLORS.warning, 
+      'En descanso / recuperación': {
+        color: COLORS.warning,
         backgroundColor: '#FEF3C7',
-        icon: <Clock size={20} color={COLORS.warning} />, 
+        icon: <Clock size={20} color={COLORS.warning} />,
         text: 'En descanso',
         descripcion: 'El lote está en período de descanso para recuperar los pastos.'
       },
-      'Cerrado / Mantenimiento': { 
-        color: COLORS.error, 
+      'Cerrado / Mantenimiento': {
+        color: COLORS.error,
         backgroundColor: '#FEE2E2',
-        icon: <AlertCircle size={20} color={COLORS.error} />, 
+        icon: <AlertCircle size={20} color={COLORS.error} />,
         text: 'Mantenimiento',
         descripcion: 'El lote está cerrado por mantenimiento o trabajos de mejora.'
       }
     };
 
-    return estadoInfo[estado] || { 
-      color: COLORS.gray, 
+    return estadoInfo[estado] || {
+      color: COLORS.gray,
       backgroundColor: '#F3F4F6',
-      icon: <Clock size={20} color={COLORS.gray} />, 
+      icon: <Clock size={20} color={COLORS.gray} />,
       text: 'No especificado',
       descripcion: 'Estado no especificado.'
     };
@@ -165,8 +165,8 @@ export default function DetallesLote() {
 
     if (tieneImagenReal) {
       return (
-        <Image 
-          source={{ uri: animal.imagen }} 
+        <Image
+          source={{ uri: animal.imagen }}
           style={styles.animalImage}
           resizeMode="cover"
         />
@@ -187,7 +187,7 @@ export default function DetallesLote() {
       'en tratamiento': COLORS.warning,
       'observación': '#8B5CF6'
     };
-    
+
     return statusColors[estado?.toLowerCase()] || COLORS.gray;
   };
 
@@ -222,7 +222,7 @@ export default function DetallesLote() {
             <ArrowLeft size={24} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalles del Lote</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={() => router.push({
               pathname: '/EditarLote',
@@ -235,10 +235,10 @@ export default function DetallesLote() {
 
         {/* Imagen del Lote */}
         <View style={styles.imageSection}>
-          <Image 
-            source={{ 
+          <Image
+            source={{
               uri: lote.imagen || 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&h=300&fit=crop'
-            }} 
+            }}
             style={styles.loteImage}
             resizeMode="cover"
           />
@@ -253,7 +253,7 @@ export default function DetallesLote() {
         {/* Información Principal Mejorada */}
         <View style={styles.section}>
           <Text style={styles.loteName}>{lote.nombre}</Text>
-          
+
           {/* Estado del Lote - Mejorado */}
           <View style={[styles.estadoBadge, { backgroundColor: estadoInfo.backgroundColor }]}>
             {estadoInfo.icon}
@@ -296,7 +296,7 @@ export default function DetallesLote() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Animales en el Lote</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/AgregarAnimal')}
             >
@@ -312,17 +312,21 @@ export default function DetallesLote() {
               <Text style={styles.emptySubtitle}>
                 Agrega animales para comenzar a gestionar este lote
               </Text>
-              <TouchableOpacity 
-                style={[styles.button, styles.primaryButton]}
-                onPress={() => router.push('/AgregarAnimal')}
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push({
+                  pathname: '/AgregarAnimal',
+                  params: { loteId: lote.id } // Pasar el ID del lote actual
+                })}
               >
-                <Text style={styles.primaryButtonText}>Agregar Primer Animal</Text>
+                <Plus size={18} color={COLORS.primary} />
+                <Text style={styles.addButtonText}>Agregar</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.animalesGrid}>
               {animalesEnLote.map((animal) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={animal.id}
                   style={styles.animalCard}
                   onPress={() => router.push({
@@ -332,8 +336,8 @@ export default function DetallesLote() {
                 >
                   <View style={styles.animalImageContainer}>
                     {renderAnimalImage(animal)}
-                    <View style={[styles.animalStatusBadge, { 
-                      backgroundColor: getStatusColor(animal.estado) 
+                    <View style={[styles.animalStatusBadge, {
+                      backgroundColor: getStatusColor(animal.estado)
                     }]} />
                     <View style={styles.sexoBadge}>
                       <Text style={styles.sexoText}>
@@ -363,19 +367,19 @@ export default function DetallesLote() {
         {/* Información Adicional Mejorada */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información del Lote</Text>
-          
+
           <View style={styles.infoList}>
             <View style={styles.infoListItem}>
               <Calendar size={18} color={COLORS.gray} />
               <View style={styles.infoText}>
                 <Text style={styles.infoLabel}>Fecha de Creación</Text>
                 <Text style={styles.infoValue}>
-                  {lote.fechaCreacion?.toDate ? 
-                    new Date(lote.fechaCreacion.toDate()).toLocaleDateString('es-ES', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    }) : 
+                  {lote.fechaCreacion?.toDate ?
+                    new Date(lote.fechaCreacion.toDate()).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) :
                     'No disponible'
                   }
                 </Text>
@@ -406,7 +410,7 @@ export default function DetallesLote() {
 
         {/* Botones de Acción - Eliminado el duplicado de editar */}
         <View style={styles.section}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.button, styles.dangerButton]}
             onPress={handleEliminarLote}
             disabled={eliminando}

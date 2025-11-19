@@ -6,13 +6,12 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { Star, X, Plus } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView,useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAnimalForm } from '../hooks/useAnimalForm';
 import Header from '../components/AnimalHeader';
 import PhotoSection from '../components/sections/PhotoSection';
@@ -29,9 +28,11 @@ import {
   opcionesProposito,
   opcionesEstadoSalud,
 } from '../constants/animal.constant';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function AgregarAnimalScreen() {
   const insets = useSafeAreaInsets();
+  const { loteId } = useLocalSearchParams();
   
   // ⚠️ TODOS LOS HOOKS DEBEN LLAMARSE INCONDICIONALMENTE AL INICIO
   const {
@@ -78,7 +79,7 @@ export default function AgregarAnimalScreen() {
     agregarEnfermedad,
     agregarPeso,
     eliminarItem,
-  } = useAnimalForm();
+  } = useAnimalForm(loteId as string);
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -8,7 +8,7 @@ import { AnimalForm, Vaccine, Deworming, Treatment, Disease, WeightRecord } from
 import * as ImagePicker from 'expo-image-picker';
 import { convertirImagenABase64 } from '@/services/imagenesService';
 import { agregarAnimalALote } from '@/services/ubicacionesService';
-import { obtenerLotes } from '@/services/ubicacionesService';
+import { obtenerLotes, removerAnimalDeLote } from '@/services/ubicacionesService';
 
 // Estados iniciales - AGREGAR 'Estado productivo'
 const initialFormState: AnimalForm = {
@@ -37,8 +37,8 @@ const initialFormState: AnimalForm = {
 
 // ... (los demás estados iniciales se mantienen igual)
 const initialVacunaState: Vaccine = {
-  nombre_vacuna: '', 
-  fecha_aplicacion: '', 
+  nombre_vacuna: '',
+  fecha_aplicacion: '',
   dosis: '',
   via_administracion: '',
   proxima_dosis: '',
@@ -103,14 +103,14 @@ const initialPesoState: WeightRecord = {
 export const useAnimalFormEdit = () => {
   const router = useRouter();
   const { animalId } = useLocalSearchParams();
-  
+
   const [sexo, setSexo] = useState<'Macho' | 'Hembra'>('Hembra');
   const [foto, setFoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lotes, setLotes] = useState<any[]>([]);
   const [cargandoLotes, setCargandoLotes] = useState(true);
-  
+
   // Estado del formulario principal
   const [form, setForm] = useState<AnimalForm>(initialFormState);
 
@@ -173,13 +173,13 @@ export const useAnimalFormEdit = () => {
   const cargarAnimal = async () => {
     try {
       if (typeof animalId !== 'string') throw new Error('ID de animal inválido');
-      
+
       const animal = await obtenerAnimalPorId(animalId);
       if (animal) {
         setForm(animal as AnimalForm);
         setSexo(animal.sexo);
         setFoto(animal.foto || null);
-        
+
         // Cargar arrays
         setVacunas(animal.vacunas || []);
         setDesparasitaciones(animal.desparasitaciones || []);
@@ -216,7 +216,7 @@ export const useAnimalFormEdit = () => {
       allowsEditing: true,
       aspect: [4, 3],
     });
-    
+
     if (!result.canceled && result.assets?.[0]) {
       setFoto(result.assets[0].uri);
     }
@@ -234,7 +234,7 @@ export const useAnimalFormEdit = () => {
       allowsEditing: true,
       aspect: [4, 3],
     });
-    
+
     if (!result.canceled && result.assets?.[0]) {
       setFoto(result.assets[0].uri);
     }
@@ -249,7 +249,7 @@ export const useAnimalFormEdit = () => {
     setSaving(true);
     try {
       let fotoBase64 = '';
-      
+
       // Solo convertir la imagen si es nueva (no es base64 ya)
       if (foto && !foto.startsWith('data:image')) {
         try {
@@ -275,20 +275,42 @@ export const useAnimalFormEdit = () => {
       };
 
       if (typeof animalId !== 'string') throw new Error('ID inválido');
+
+      // Obtener el animal actual para comparar el lote anterior
+      const animalActual = await obtenerAnimalPorId(animalId);
+      const loteAnterior = animalActual?.['Lote o potrero actual'] || '';
+      const loteNuevo = form['Lote o potrero actual'];
+
+      // Actualizar el animal primero
       await actualizarAnimal(animalId, animalData);
 
-      // Si se asignó un lote, agregar el animal al lote
-      if (form['Lote o potrero actual']) {
-        try {
-          await agregarAnimalALote(form['Lote o potrero actual'], animalId);
-        } catch (error) {
-          console.error('Error al asignar animal al lote:', error);
-          // No fallar la operación principal por esto
+      // Manejar cambios en la asignación de lote
+      if (loteAnterior !== loteNuevo) {
+        // Remover del lote anterior si existía
+        if (loteAnterior) {
+          try {
+            await removerAnimalDeLote(loteAnterior, animalId);
+            console.log(`✅ Animal removido del lote anterior: ${loteAnterior}`);
+          } catch (error) {
+            console.error('Error al remover animal del lote anterior:', error);
+            // No fallar la operación principal por esto
+          }
+        }
+
+        // Agregar al nuevo lote si se especificó uno
+        if (loteNuevo) {
+          try {
+            await agregarAnimalALote(loteNuevo, animalId);
+            console.log(`✅ Animal agregado al nuevo lote: ${loteNuevo}`);
+          } catch (error) {
+            console.error('Error al asignar animal al nuevo lote:', error);
+            // No fallar la operación principal por esto
+          }
         }
       }
 
       Alert.alert(
-        '✅ Animal actualizado', 
+        '✅ Animal actualizado',
         `${form.Nombre} actualizado correctamente.`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
@@ -372,16 +394,16 @@ export const useAnimalFormEdit = () => {
       return;
     }
     setRegistrosPeso(prev => [...prev, { ...tempPeso, id: Date.now().toString() }]);
-    
+
     // Actualizar peso actual si es el registro más reciente
     const fechaPeso = new Date(tempPeso.fecha);
     const fechaUltimoPeso = form['Fecha del último pesaje'] ? new Date(form['Fecha del último pesaje']) : new Date(0);
-    
+
     if (!form['Fecha del último pesaje'] || fechaPeso > fechaUltimoPeso) {
       handleChange('Peso actual', tempPeso.peso);
       handleChange('Fecha del último pesaje', tempPeso.fecha);
     }
-    
+
     setTempPeso(initialPesoState);
     setModalPeso(false);
   };

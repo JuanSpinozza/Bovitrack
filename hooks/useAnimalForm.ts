@@ -97,7 +97,7 @@ const initialPesoState: WeightRecord = {
     observaciones: ''
 };
 
-export const useAnimalForm = () => {
+export const useAnimalForm = (loteId?: string) => {
     const router = useRouter();
     const [sexo, setSexo] = useState<'Macho' | 'Hembra'>('Hembra');
     const [foto, setFoto] = useState<string | null>(null);
@@ -106,8 +106,10 @@ export const useAnimalForm = () => {
     const [cargandoLotes, setCargandoLotes] = useState(true);
 
     // Estado del formulario principal
-    const [form, setForm] = useState<AnimalForm>(initialFormState);
-
+    const [form, setForm] = useState<AnimalForm>({
+        ...initialFormState,
+        'Lote o potrero actual': loteId || '', // Asignar loteId si existe
+    });
     // Estados para arrays
     const [vacunas, setVacunas] = useState<Vaccine[]>([]);
     const [desparasitaciones, setDesparasitaciones] = useState<Deworming[]>([]);
@@ -135,6 +137,12 @@ export const useAnimalForm = () => {
             try {
                 const lotesData = await obtenerLotes();
                 setLotes(lotesData);
+
+                // Si hay un loteId y existe en los lotes cargados, seleccionarlo automáticamente
+                if (loteId && lotesData.some(lote => lote.id === loteId)) {
+                    // No necesitamos hacer nada más porque ya se inicializó el form con loteId
+                    console.log(`✅ Lote ${loteId} seleccionado automáticamente`);
+                }
             } catch (error) {
                 console.error('Error al cargar lotes:', error);
                 Alert.alert('Error', 'No se pudieron cargar los lotes');
@@ -144,7 +152,7 @@ export const useAnimalForm = () => {
         };
 
         cargarLotes();
-    }, []);
+    }, [loteId]);
 
     const handleChange = (field: keyof AnimalForm, value: any) => {
         setForm(prev => ({ ...prev, [field]: value }));
