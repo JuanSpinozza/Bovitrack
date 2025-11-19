@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Pressable } from 'react-native';
-import { Edit2, MapPin, Users } from 'lucide-react-native';
+import { Edit2, MapPin, Users, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
 
 interface LocationCardProps {
   location: {
@@ -10,6 +10,7 @@ interface LocationCardProps {
     imagen?: string;
     animales?: string[];
     cantidadAnimales?: number;
+    estado?: string; // Nuevo campo: 'Activo', 'En descanso / recuperación', 'Cerrado / Mantenimiento'
   };
   onPress?: () => void;
   onEdit?: () => void;
@@ -18,6 +19,22 @@ interface LocationCardProps {
 export default function LocationCard({ location, onPress, onEdit }: LocationCardProps) {
   const cantidadAnimales = location.cantidadAnimales || location.animales?.length || 0;
   
+  // Función para obtener el color y icono según el estado
+  const getEstadoInfo = (estado?: string) => {
+    switch (estado) {
+      case 'Activo':
+        return { color: '#10B981', icon: <CheckCircle size={14} color="#10B981" />, text: 'Activo' };
+      case 'En descanso / recuperación':
+        return { color: '#F59E0B', icon: <Clock size={14} color="#F59E0B" />, text: 'En descanso' };
+      case 'Cerrado / Mantenimiento':
+        return { color: '#EF4444', icon: <AlertCircle size={14} color="#EF4444" />, text: 'Mantenimiento' };
+      default:
+        return { color: '#6B7280', icon: <Clock size={14} color="#6B7280" />, text: 'No especificado' };
+    }
+  };
+
+  const estadoInfo = getEstadoInfo(location.estado);
+
   return (
     <Pressable 
       style={styles.locationCard}
@@ -64,13 +81,21 @@ export default function LocationCard({ location, onPress, onEdit }: LocationCard
 
         {/* Estado del lote */}
         <View style={styles.statusContainer}>
-          <View style={[
-            styles.statusIndicator, 
-            { backgroundColor: cantidadAnimales > 0 ? '#10B981' : '#6B7280' }
-          ]} />
-          <Text style={styles.statusText}>
-            {cantidadAnimales > 0 ? `${cantidadAnimales} animales` : 'Vacío'}
-          </Text>
+          <View style={styles.estadoContainer}>
+            {estadoInfo.icon}
+            <Text style={[styles.estadoText, { color: estadoInfo.color }]}>
+              {estadoInfo.text}
+            </Text>
+          </View>
+          <View style={styles.animalesContainer}>
+            <View style={[
+              styles.statusIndicator, 
+              { backgroundColor: cantidadAnimales > 0 ? '#10B981' : '#6B7280' }
+            ]} />
+            <Text style={styles.statusText}>
+              {cantidadAnimales > 0 ? `${cantidadAnimales} animales` : 'Vacío'}
+            </Text>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -153,8 +178,22 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+  },
+  estadoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  estadoText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  animalesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   statusIndicator: {
     width: 8,

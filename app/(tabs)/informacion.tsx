@@ -1,5 +1,5 @@
 import { eliminarAnimal, formatearAnimalParaUI, obtenerAnimales } from '@/services/animalesService';
-import { obtenerLotes } from '@/services/ubicacionesService';
+import { obtenerLotes, formatearLoteParaUI } from '@/services/ubicacionesService';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Plus } from 'lucide-react-native';
@@ -41,6 +41,7 @@ interface Lote {
   area?: string;
   imagen?: string;
   animales?: string[];
+  estado?: string; // Nuevo campo
 }
 
 interface Guia {
@@ -88,11 +89,11 @@ export default function InformacionScreen() {
   };
 
   const handleVerDetallesAnimal = (animal: Animal) => {
-  router.push({
-    pathname: '/DetallesAnimal',
-    params: { animalId: animal.id }
-  });
-};
+    router.push({
+      pathname: '/DetallesAnimal',
+      params: { animalId: animal.id }
+    });
+  };
 
   // 🔹 Cargar animales usando el servicio
   const fetchAnimales = async () => {
@@ -110,7 +111,12 @@ export default function InformacionScreen() {
   const fetchLotes = async () => {
     try {
       const data = await obtenerLotes();
-      setLotes(data);
+      // Formatear los lotes para incluir el estado
+      const lotesFormateados = data.map(lote => ({
+        ...lote,
+        ...formatearLoteParaUI(lote)
+      }));
+      setLotes(lotesFormateados);
     } catch (error) {
       console.error('Error al cargar lotes:', error);
       Alert.alert('Error', 'No se pudieron cargar los lotes');
@@ -150,23 +156,28 @@ export default function InformacionScreen() {
     );
   };
 
-const handleVerDetallesLote = (lote: Lote) => {
-  router.push({
-    pathname: '/DetallesLote',
-    params: { 
-      loteId: lote.id,
-      loteNombre: lote.nombre 
-    }
-  });
-};
+  const handleVerDetallesLote = (lote: Lote) => {
+    router.push({
+      pathname: '/DetallesLote',
+      params: { 
+        loteId: lote.id,
+        loteNombre: lote.nombre 
+      }
+    });
+  };
 
-// 🔹 Manejar editar lote
-const handleEditarLote = (lote: Lote) => {
-  router.push({
-    pathname: '/EditarLote',
-    params: { loteId: lote.id }
-  });
-};
+  // 🔹 Manejar editar lote
+  const handleEditarLote = (lote: Lote) => {
+    router.push({
+      pathname: '/EditarLote',
+      params: { loteId: lote.id }
+    });
+  };
+
+  // 🔹 Manejar agregar lote
+  const handleAgregarLote = () => {
+    router.push('/AgregarUbicacion');
+  };
 
   // 🔹 Datos simulados (Guías)
   const guiasAlimentacion: Guia[] = [
@@ -246,7 +257,7 @@ const handleEditarLote = (lote: Lote) => {
                   showProduction={animal.sexo === 'Hembra'}
                   onEdit={() => handleEditarAnimal(animal)}
                   onDelete={() => handleEliminarAnimal(animal)}
-                  onPress={()=> handleVerDetallesAnimal(animal)}
+                  onPress={() => handleVerDetallesAnimal(animal)}
                 />
               ))}
             </View>
@@ -268,7 +279,7 @@ const handleEditarLote = (lote: Lote) => {
           </Text>
           <TouchableOpacity 
             style={styles.emptyButton}
-            onPress={() => router.push('/AgregarUbicacion')}
+            onPress={handleAgregarLote}
           >
             <Text style={styles.emptyButtonText}>Agregar Primer Lote</Text>
           </TouchableOpacity>
@@ -351,7 +362,7 @@ const handleEditarLote = (lote: Lote) => {
               }
               
               if (selectedTab === 'Animales') router.push('/AgregarAnimal');
-              else if (selectedTab === 'Lotes') router.push('/AgregarUbicacion');
+              else if (selectedTab === 'Lotes') handleAgregarLote();
               else if (selectedTab === 'Guías')
                 Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
             }}>
