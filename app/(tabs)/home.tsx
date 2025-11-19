@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Milk, Plus, Scale } from 'lucide-react-native';
+import { ArrowLeftRight, DollarSign, Milk, Plus, Scale } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -30,6 +30,7 @@ export default function HomeScreen() {
   const [modalPeso, setModalPeso] = useState(false);
   const [modalLeche, setModalLeche] = useState(false);
   const [modalRotacion, setModalRotacion] = useState(false);
+  const [modalVenta, setModalVenta] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
 
   // Estados para formularios
@@ -39,6 +40,28 @@ export default function HomeScreen() {
     origen: '', 
     destino: '', 
     animales: [] as string[] 
+  });
+
+  // Estados para venta
+  const [tipoVenta, setTipoVenta] = useState<'animal' | 'leche'>('animal');
+  const [ventaAnimalForm, setVentaAnimalForm] = useState({
+    fecha: '',
+    animal: '',
+    peso: '',
+    tipoPrecio: 'kilo', // 'kilo' o 'fijo'
+    precioKilo: '',
+    precioFijo: '',
+    total: '',
+    comprador: '',
+    motivo: ''
+  });
+  const [ventaLecheForm, setVentaLecheForm] = useState({
+    fecha: '',
+    cantidad: '',
+    precioLitro: '',
+    total: '',
+    comprador: '',
+    vaca: ''
   });
 
   // Datos para el scroll horizontal de animales destacados
@@ -75,6 +98,11 @@ export default function HomeScreen() {
     { label: 'Zeus - cod#21123127', value: 'zeus' },
   ];
 
+  const vacas = [
+    { label: 'Luna - cod#21123124', value: 'luna' },
+    { label: 'Bella - cod#21123125', value: 'bella' },
+  ];
+
   const ubicaciones = [
     { label: 'Lote A - Pastoreo Norte', value: 'lote_a' },
     { label: 'Lote B - Pastoreo Sur', value: 'lote_b' },
@@ -90,6 +118,13 @@ export default function HomeScreen() {
     { label: 'Zeus', value: 'zeus' },
   ];
 
+  const motivosVenta = [
+    { label: 'Recambio', value: 'recambio' },
+    { label: 'Descarte', value: 'descarte' },
+    { label: 'Comercialización', value: 'comercializacion' },
+  ];
+
+  // Funciones para manejar formularios existentes
   const handleRegistrarPeso = () => {
     if (!pesoForm.animal || !pesoForm.peso || !pesoForm.fecha) {
       Alert.alert('Error', 'Por favor complete todos los campos');
@@ -127,6 +162,55 @@ export default function HomeScreen() {
     );
     setRotacionForm({ origen: '', destino: '', animales: [] });
     setModalRotacion(false);
+  };
+
+  // Funciones para manejar ventas
+  const calcularTotalVentaAnimal = () => {
+    if (ventaAnimalForm.tipoPrecio === 'kilo' && ventaAnimalForm.peso && ventaAnimalForm.precioKilo) {
+      const total = parseFloat(ventaAnimalForm.peso) * parseFloat(ventaAnimalForm.precioKilo);
+      setVentaAnimalForm({ ...ventaAnimalForm, total: total.toString() });
+    } else if (ventaAnimalForm.tipoPrecio === 'fijo' && ventaAnimalForm.precioFijo) {
+      setVentaAnimalForm({ ...ventaAnimalForm, total: ventaAnimalForm.precioFijo });
+    }
+  };
+
+  const calcularTotalVentaLeche = () => {
+    if (ventaLecheForm.cantidad && ventaLecheForm.precioLitro) {
+      const total = parseFloat(ventaLecheForm.cantidad) * parseFloat(ventaLecheForm.precioLitro);
+      setVentaLecheForm({ ...ventaLecheForm, total: total.toString() });
+    }
+  };
+
+  const handleRegistrarVenta = () => {
+    if (tipoVenta === 'animal') {
+      if (!ventaAnimalForm.fecha || !ventaAnimalForm.animal || !ventaAnimalForm.peso || 
+          !ventaAnimalForm.total || !ventaAnimalForm.comprador || !ventaAnimalForm.motivo) {
+        Alert.alert('Error', 'Por favor complete todos los campos');
+        return;
+      }
+      Alert.alert(
+        '✅ Venta de Animal Registrada', 
+        `Animal: ${ventaAnimalForm.animal}\nPeso: ${ventaAnimalForm.peso} kg\nTotal: $${ventaAnimalForm.total}`
+      );
+      setVentaAnimalForm({
+        fecha: '', animal: '', peso: '', tipoPrecio: 'kilo', precioKilo: '', precioFijo: '', 
+        total: '', comprador: '', motivo: ''
+      });
+    } else {
+      if (!ventaLecheForm.fecha || !ventaLecheForm.cantidad || !ventaLecheForm.precioLitro || 
+          !ventaLecheForm.total || !ventaLecheForm.comprador || !ventaLecheForm.vaca) {
+        Alert.alert('Error', 'Por favor complete todos los campos');
+        return;
+      }
+      Alert.alert(
+        '✅ Venta de Leche Registrada', 
+        `Vaca: ${ventaLecheForm.vaca}\nCantidad: ${ventaLecheForm.cantidad} L\nTotal: $${ventaLecheForm.total}`
+      );
+      setVentaLecheForm({
+        fecha: '', cantidad: '', precioLitro: '', total: '', comprador: '', vaca: ''
+      });
+    }
+    setModalVenta(false);
   };
 
   // Función para manejar selección múltiple corregida
@@ -286,6 +370,17 @@ export default function HomeScreen() {
             >
               <ArrowLeftRight color="#fff" size={20} />
               <Text style={styles.actionMenuText}>Registrar Rotación</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowActionMenu(false);
+                setModalVenta(true);
+              }}
+            >
+              <DollarSign color="#fff" size={20} />
+              <Text style={styles.actionMenuText}>Registrar Venta</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -479,6 +574,262 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+{/* Modal Registrar Venta */}
+<Modal visible={modalVenta} animationType="slide" transparent>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Registrar Venta</Text>
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.modalScrollContent}
+      >
+        {/* Selector de tipo de venta */}
+        <View style={styles.tipoVentaContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tipoVentaButton,
+              tipoVenta === 'animal' && styles.tipoVentaButtonActive
+            ]}
+            onPress={() => setTipoVenta('animal')}
+          >
+            <Text style={[
+              styles.tipoVentaText,
+              tipoVenta === 'animal' && styles.tipoVentaTextActive
+            ]}>
+              Venta Animal
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tipoVentaButton,
+              tipoVenta === 'leche' && styles.tipoVentaButtonActive
+            ]}
+            onPress={() => setTipoVenta('leche')}
+          >
+            <Text style={[
+              styles.tipoVentaText,
+              tipoVenta === 'leche' && styles.tipoVentaTextActive
+            ]}>
+              Venta Leche
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {tipoVenta === 'animal' ? (
+          /* Formulario Venta Animal */
+          <>
+            <Text style={styles.label}>Fecha de Venta</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="DD/MM/AAAA"
+              value={ventaAnimalForm.fecha}
+              onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, fecha: text })}
+            />
+
+            <Text style={styles.label}>Animal Vendido</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={animales}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione un animal"
+              value={ventaAnimalForm.animal}
+              onChange={(item) => setVentaAnimalForm({ ...ventaAnimalForm, animal: item.value })}
+            />
+
+            <Text style={styles.label}>Peso al momento de la venta (kg)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ingrese el peso"
+              keyboardType="numeric"
+              value={ventaAnimalForm.peso}
+              onChangeText={(text) => {
+                setVentaAnimalForm({ ...ventaAnimalForm, peso: text });
+                setTimeout(calcularTotalVentaAnimal, 100);
+              }}
+            />
+
+            <Text style={styles.label}>Tipo de Precio</Text>
+            <View style={styles.tipoPrecioContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tipoPrecioButton,
+                  ventaAnimalForm.tipoPrecio === 'kilo' && styles.tipoPrecioButtonActive
+                ]}
+                onPress={() => setVentaAnimalForm({ ...ventaAnimalForm, tipoPrecio: 'kilo' })}
+              >
+                <Text style={[
+                  styles.tipoPrecioText,
+                  ventaAnimalForm.tipoPrecio === 'kilo' && styles.tipoPrecioTextActive
+                ]}>
+                  Precio por Kilo
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tipoPrecioButton,
+                  ventaAnimalForm.tipoPrecio === 'fijo' && styles.tipoPrecioButtonActive
+                ]}
+                onPress={() => setVentaAnimalForm({ ...ventaAnimalForm, tipoPrecio: 'fijo' })}
+              >
+                <Text style={[
+                  styles.tipoPrecioText,
+                  ventaAnimalForm.tipoPrecio === 'fijo' && styles.tipoPrecioTextActive
+                ]}>
+                  Precio Fijo
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {ventaAnimalForm.tipoPrecio === 'kilo' ? (
+              <>
+                <Text style={styles.label}>Precio por Kilo ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Precio por kilo"
+                  keyboardType="numeric"
+                  value={ventaAnimalForm.precioKilo}
+                  onChangeText={(text) => {
+                    setVentaAnimalForm({ ...ventaAnimalForm, precioKilo: text });
+                    setTimeout(calcularTotalVentaAnimal, 100);
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Precio Fijo ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Precio fijo"
+                  keyboardType="numeric"
+                  value={ventaAnimalForm.precioFijo}
+                  onChangeText={(text) => {
+                    setVentaAnimalForm({ ...ventaAnimalForm, precioFijo: text });
+                    setTimeout(calcularTotalVentaAnimal, 100);
+                  }}
+                />
+              </>
+            )}
+
+            <Text style={styles.label}>Total Recibido ($)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Total"
+              keyboardType="numeric"
+              value={ventaAnimalForm.total}
+              onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, total: text })}
+              editable={false}
+            />
+
+            <Text style={styles.label}>Comprador</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre del comprador"
+              value={ventaAnimalForm.comprador}
+              onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, comprador: text })}
+            />
+
+            <Text style={styles.label}>Motivo de Venta</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={motivosVenta}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione motivo"
+              value={ventaAnimalForm.motivo}
+              onChange={(item) => setVentaAnimalForm({ ...ventaAnimalForm, motivo: item.value })}
+            />
+          </>
+        ) : (
+          /* Formulario Venta Leche */
+          <>
+            <Text style={styles.label}>Fecha de la Venta</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="DD/MM/AAAA"
+              value={ventaLecheForm.fecha}
+              onChangeText={(text) => setVentaLecheForm({ ...ventaLecheForm, fecha: text })}
+            />
+
+            <Text style={styles.label}>Vaca</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={vacas}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione una vaca"
+              value={ventaLecheForm.vaca}
+              onChange={(item) => setVentaLecheForm({ ...ventaLecheForm, vaca: item.value })}
+            />
+
+            <Text style={styles.label}>Cantidad Vendida (litros)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Litros vendidos"
+              keyboardType="numeric"
+              value={ventaLecheForm.cantidad}
+              onChangeText={(text) => {
+                setVentaLecheForm({ ...ventaLecheForm, cantidad: text });
+                setTimeout(calcularTotalVentaLeche, 100);
+              }}
+            />
+
+            <Text style={styles.label}>Precio por Litro ($)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Precio por litro"
+              keyboardType="numeric"
+              value={ventaLecheForm.precioLitro}
+              onChangeText={(text) => {
+                setVentaLecheForm({ ...ventaLecheForm, precioLitro: text });
+                setTimeout(calcularTotalVentaLeche, 100);
+              }}
+            />
+
+            <Text style={styles.label}>Total Recibido ($)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Total"
+              keyboardType="numeric"
+              value={ventaLecheForm.total}
+              onChangeText={(text) => setVentaLecheForm({ ...ventaLecheForm, total: text })}
+              editable={false}
+            />
+
+            <Text style={styles.label}>Cliente / Comprador</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre del cliente"
+              value={ventaLecheForm.comprador}
+              onChangeText={(text) => setVentaLecheForm({ ...ventaLecheForm, comprador: text })}
+            />
+          </>
+        )}
+      </ScrollView>
+
+      {/* Botones fuera del ScrollView pero dentro del modalContent */}
+      <View style={styles.modalButtons}>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => {
+            setModalVenta(false);
+            setTipoVenta('animal');
+          }}
+        >
+          <Text style={styles.cancelButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.confirmButton}
+          onPress={handleRegistrarVenta}
+        >
+          <Text style={styles.confirmButtonText}>Aceptar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
     </View>
   );
 }
@@ -487,7 +838,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAF9',
-  },
+  },modalScrollContent: {
+  paddingBottom: 20, // Espacio adicional al final del scroll
+},
   header: {
     paddingTop: 60,
     paddingHorizontal: 20,
@@ -801,5 +1154,56 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  // Nuevos estilos para el modal de venta
+  tipoVentaContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  tipoVentaButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  tipoVentaButtonActive: {
+    backgroundColor: '#005246',
+  },
+  tipoVentaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tipoVentaTextActive: {
+    color: '#fff',
+  },
+  tipoPrecioContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  tipoPrecioButton: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  tipoPrecioButtonActive: {
+    backgroundColor: '#005246',
+  },
+  tipoPrecioText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tipoPrecioTextActive: {
+    color: '#fff',
   },
 });
