@@ -60,7 +60,6 @@ export const obtenerLotes = async (): Promise<Lote[]> => {
       ...doc.data()
     } as Lote));
     
-    console.log(`✅ ${data.length} lotes cargados`);
     return data;
   } catch (error) {
     console.error('❌ Error al obtener lotes:', error);
@@ -112,7 +111,6 @@ export const agregarLote = async (loteData: Omit<Lote, 'id' | 'fechaCreacion' | 
       fechaCreacion: new Date(),
     });
     
-    console.log('✅ Lote agregado con ID:', docRef.id);
     
     return {
       id: docRef.id,
@@ -144,9 +142,7 @@ export const actualizarLote = async (id: string, loteData: Partial<Omit<Lote, 'i
       fechaActualizacion: new Date(),
     });
     
-    console.log(`✅ Lote ${id} actualizado`);
   } catch (error) {
-    console.error(`❌ Error al actualizar lote ${id}:`, error);
     throw new Error('No se pudo actualizar el lote');
   }
 };
@@ -162,9 +158,7 @@ export const eliminarLote = async (id: string): Promise<void> => {
     const loteRef = doc(db, 'usuarios', user.uid, 'lotes', id);
     await deleteDoc(loteRef);
     
-    console.log(`✅ Lote ${id} eliminado`);
   } catch (error) {
-    console.error(`❌ Error al eliminar lote ${id}:`, error);
     throw new Error('No se pudo eliminar el lote');
   }
 };
@@ -220,7 +214,6 @@ export const buscarLotes = async (criterios: {
       ...doc.data()
     } as Lote));
     
-    console.log(`✅ ${data.length} lotes encontrados con los criterios`);
     return data;
   } catch (error) {
     console.error('❌ Error al buscar lotes:', error);

@@ -151,7 +151,6 @@ export const obtenerAnimales = async (): Promise<Animal[]> => {
       ...doc.data()
     } as Animal));
     
-    console.log(`✅ ${data.length} animales cargados`);
     return data;
   } catch (error) {
     console.error('❌ Error al obtener animales:', error);
@@ -198,8 +197,6 @@ export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegist
       fechaRegistro: new Date(),
     });
     
-    console.log('✅ Animal agregado con ID:', docRef.id);
-    
     return {
       id: docRef.id,
       ...animalData,
@@ -225,7 +222,6 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
       fechaActualizacion: new Date(),
     });
     
-    console.log(`✅ Animal ${id} actualizado`);
   } catch (error) {
     console.error(`❌ Error al actualizar animal ${id}:`, error);
     throw new Error('No se pudo actualizar el animal');
@@ -243,7 +239,6 @@ export const eliminarAnimal = async (id: string): Promise<void> => {
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
     await deleteDoc(animalRef);
     
-    console.log(`✅ Animal ${id} eliminado`);
   } catch (error) {
     console.error(`❌ Error al eliminar animal ${id}:`, error);
     throw new Error('No se pudo eliminar el animal');
@@ -303,7 +298,6 @@ export const buscarAnimales = async (criterios: {
       ...doc.data()
     } as Animal));
     
-    console.log(`✅ ${data.length} animales encontrados con los criterios`);
     return data;
   } catch (error) {
     console.error('❌ Error al buscar animales:', error);
@@ -361,7 +355,6 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
     
     return estadisticas;
   } catch (error) {
-    console.error('❌ Error al obtener estadísticas:', error);
     throw new Error('No se pudieron obtener las estadísticas');
   }
 };
@@ -522,7 +515,6 @@ export const agregarRegistroPeso = async (animalId: string, registroPeso: {
       'Fecha del último pesaje': registroPeso.fecha
     });
   } catch (error) {
-    console.error('❌ Error al agregar registro de peso:', error);
     throw new Error('No se pudo agregar el registro de peso');
   }
 };
@@ -542,7 +534,6 @@ export const agregarVacuna = async (animalId: string, vacuna: any): Promise<void
 
     await actualizarAnimal(animalId, { vacunas: nuevasVacunas });
   } catch (error) {
-    console.error('❌ Error al agregar vacuna:', error);
     throw new Error('No se pudo agregar la vacuna');
   }
 };
