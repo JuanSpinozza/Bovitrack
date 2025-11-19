@@ -8,8 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Edit3, Calendar, Scale, MapPin, User, Heart, Baby, Droplets } from 'lucide-react-native';
 import { obtenerAnimalPorId, Animal, calcularEdad, obtenerUltimoPeso } from '@/services/animalesService';

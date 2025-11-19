@@ -8,16 +8,49 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Edit3, MapPin, Users, Calendar, Plus } from 'lucide-react-native';
-import { obtenerLotePorId, Lote } from '@/services/ubicacionesService';
-import { obtenerAnimales, Animal, formatearAnimalParaUI } from '@/services/animalesService';
+import { 
+  ArrowLeft, 
+  Edit3, 
+  MapPin, 
+  Users, 
+  Calendar, 
+  Plus, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  Trash2,
+  Square
+} from 'lucide-react-native';
+import { obtenerLotePorId, Lote, eliminarLote, EstadoLote, obtenerColorEstado } from '@/services/ubicacionesService';
+import { obtenerAnimales, formatearAnimalParaUI } from '@/services/animalesService';
 import { validarImagenBase64 } from '@/services/imagenesService';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// Constantes para colores y estilos
+const COLORS = {
+  primary: '#005246',
+  secondary: '#F0F9F8',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  gray: '#64748B',
+  lightGray: '#F1F5F9',
+  white: '#fff',
+  background: '#F8FAFC',
+};
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 20,
+  xl: 24,
+};
 
 export default function DetallesLote() {
   const { loteId, loteNombre } = useLocalSearchParams();
@@ -25,6 +58,7 @@ export default function DetallesLote() {
   const [lote, setLote] = useState<Lote | null>(null);
   const [animalesEnLote, setAnimalesEnLote] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
     cargarLoteYAnimales();
@@ -37,12 +71,10 @@ export default function DetallesLote() {
         return;
       }
 
-      // Cargar datos del lote
       const loteData = await obtenerLotePorId(loteId as string);
       setLote(loteData);
 
       if (loteData) {
-        // Cargar todos los animales para filtrar los que están en este lote
         const todosAnimales = await obtenerAnimales();
         const animalesFiltrados = todosAnimales.filter(animal => 
           loteData.animales.includes(animal.id)
@@ -60,7 +92,73 @@ export default function DetallesLote() {
     }
   };
 
-  // Función para renderizar la imagen del animal
+  const handleEliminarLote = () => {
+    if (!lote) return;
+
+    Alert.alert(
+      'Eliminar Lote',
+      `¿Estás seguro de que quieres eliminar el lote "${lote.nombre}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: async () => {
+            setEliminando(true);
+            try {
+              await eliminarLote(lote.id);
+              Alert.alert(
+                'Lote Eliminado',
+                `El lote "${lote.nombre}" ha sido eliminado correctamente.`,
+                [{ text: 'OK', onPress: () => router.back() }]
+              );
+            } catch (error) {
+              console.error('Error al eliminar lote:', error);
+              Alert.alert('Error', 'No se pudo eliminar el lote. Inténtalo de nuevo.');
+            } finally {
+              setEliminando(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Función para obtener la información del estado - MEJORADA
+  const getEstadoInfo = (estado: EstadoLote) => {
+    const estadoInfo = {
+      'Activo': { 
+        color: COLORS.success, 
+        backgroundColor: '#D1FAE5',
+        icon: <CheckCircle size={20} color={COLORS.success} />, 
+        text: 'Activo',
+        descripcion: 'Este lote está en uso activo para pastoreo o producción.'
+      },
+      'En descanso / recuperación': { 
+        color: COLORS.warning, 
+        backgroundColor: '#FEF3C7',
+        icon: <Clock size={20} color={COLORS.warning} />, 
+        text: 'En descanso',
+        descripcion: 'El lote está en período de descanso para recuperar los pastos.'
+      },
+      'Cerrado / Mantenimiento': { 
+        color: COLORS.error, 
+        backgroundColor: '#FEE2E2',
+        icon: <AlertCircle size={20} color={COLORS.error} />, 
+        text: 'Mantenimiento',
+        descripcion: 'El lote está cerrado por mantenimiento o trabajos de mejora.'
+      }
+    };
+
+    return estadoInfo[estado] || { 
+      color: COLORS.gray, 
+      backgroundColor: '#F3F4F6',
+      icon: <Clock size={20} color={COLORS.gray} />, 
+      text: 'No especificado',
+      descripcion: 'Estado no especificado.'
+    };
+  };
+
   const renderAnimalImage = (animal: any) => {
     const tieneImagenReal = animal.imagen && validarImagenBase64(animal.imagen);
     const emojiPorDefecto = animal.sexo === 'Hembra' ? '🐄' : '🐂';
@@ -82,21 +180,21 @@ export default function DetallesLote() {
     }
   };
 
-  // Función para obtener el color del estado
   const getStatusColor = (estado: string) => {
-    switch (estado?.toLowerCase()) {
-      case 'sano': return '#10B981';
-      case 'enfermo': return '#EF4444';
-      case 'en tratamiento': return '#F59E0B';
-      case 'observación': return '#8B5CF6';
-      default: return '#6B7280';
-    }
+    const statusColors: Record<string, string> = {
+      'sano': COLORS.success,
+      'enfermo': COLORS.error,
+      'en tratamiento': COLORS.warning,
+      'observación': '#8B5CF6'
+    };
+    
+    return statusColors[estado?.toLowerCase()] || COLORS.gray;
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#005246" />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Cargando información...</Text>
       </View>
     );
@@ -104,32 +202,34 @@ export default function DetallesLote() {
 
   if (!lote) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.centerContainer}>
         <Text style={styles.errorText}>No se encontró el lote</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Regresar</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Regresar</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  const estadoInfo = getEstadoInfo(lote.estado);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Header Mejorado */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#005246" />
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalles del Lote</Text>
           <TouchableOpacity 
-            style={styles.editButton}
+            style={styles.iconButton}
             onPress={() => router.push({
               pathname: '/EditarLote',
               params: { loteId: lote.id }
             })}
           >
-            <Edit3 size={20} color="#005246" />
+            <Edit3 size={20} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
@@ -144,52 +244,64 @@ export default function DetallesLote() {
           />
           <View style={styles.imageOverlay}>
             <View style={styles.animalesCountBadge}>
-              <Users size={20} color="#fff" />
+              <Users size={20} color={COLORS.white} />
               <Text style={styles.animalesCountText}>{lote.animales.length}</Text>
             </View>
           </View>
         </View>
 
-        {/* Información Principal */}
-        <View style={styles.mainInfo}>
+        {/* Información Principal Mejorada */}
+        <View style={styles.section}>
           <Text style={styles.loteName}>{lote.nombre}</Text>
-          <View style={styles.areaContainer}>
-            <MapPin size={18} color="#005246" />
-            <Text style={styles.areaText}>Área: {lote.area}</Text>
+          
+          {/* Estado del Lote - Mejorado */}
+          <View style={[styles.estadoBadge, { backgroundColor: estadoInfo.backgroundColor }]}>
+            {estadoInfo.icon}
+            <Text style={[styles.estadoBadgeText, { color: estadoInfo.color }]}>
+              {estadoInfo.text}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoItem}>
+              <MapPin size={18} color={COLORS.primary} />
+              <Text style={styles.infoValue}>{lote.area} m²</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Users size={18} color={COLORS.primary} />
+              <Text style={styles.infoValue}>{lote.animales.length} animales</Text>
+            </View>
           </View>
         </View>
 
-        {/* Estadísticas Rápidas */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{lote.animales.length}</Text>
-            <Text style={styles.statLabel}>Animales</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>
-              {lote.animales.length > 0 ? 'Activo' : 'Vacío'}
+        {/* Descripción del Estado */}
+        <View style={styles.section}>
+          <View style={styles.infoCard}>
+            <View style={styles.estadoInfoItem}>
+              {estadoInfo.icon}
+              <View style={styles.estadoInfoText}>
+                <Text style={styles.infoLabel}>Estado Actual</Text>
+                <Text style={[styles.infoValue, { color: estadoInfo.color }]}>
+                  {lote.estado}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.estadoDescripcion}>
+              {estadoInfo.descripcion}
             </Text>
-            <Text style={styles.statLabel}>Estado</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>
-              {lote.fechaCreacion?.toDate ? 
-                new Date(lote.fechaCreacion.toDate()).toLocaleDateString() : 
-                'N/A'}
-            </Text>
-            <Text style={styles.statLabel}>Creado</Text>
           </View>
         </View>
 
         {/* Animales en el Lote */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Animales en este Lote ({lote.animales.length})</Text>
+            <Text style={styles.sectionTitle}>Animales en el Lote</Text>
             <TouchableOpacity 
               style={styles.addButton}
               onPress={() => router.push('/AgregarAnimal')}
             >
-              <Plus size={18} color="#005246" />
+              <Plus size={18} color={COLORS.primary} />
+              <Text style={styles.addButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
 
@@ -197,14 +309,14 @@ export default function DetallesLote() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🐄</Text>
               <Text style={styles.emptyTitle}>No hay animales en este lote</Text>
-              <Text style={styles.emptyText}>
-                Agrega animales para organizar tu ganado
+              <Text style={styles.emptySubtitle}>
+                Agrega animales para comenzar a gestionar este lote
               </Text>
               <TouchableOpacity 
-                style={styles.emptyActionButton}
+                style={[styles.button, styles.primaryButton]}
                 onPress={() => router.push('/AgregarAnimal')}
               >
-                <Text style={styles.emptyActionText}>Agregar Animal</Text>
+                <Text style={styles.primaryButtonText}>Agregar Primer Animal</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -218,16 +330,11 @@ export default function DetallesLote() {
                     params: { animalId: animal.id }
                   })}
                 >
-                  {/* Imagen/Emoji del Animal */}
                   <View style={styles.animalImageContainer}>
                     {renderAnimalImage(animal)}
-                    
-                    {/* Badge de estado de salud */}
                     <View style={[styles.animalStatusBadge, { 
                       backgroundColor: getStatusColor(animal.estado) 
                     }]} />
-                    
-                    {/* Badge de sexo */}
                     <View style={styles.sexoBadge}>
                       <Text style={styles.sexoText}>
                         {animal.sexo === 'Hembra' ? '♀' : '♂'}
@@ -235,29 +342,17 @@ export default function DetallesLote() {
                     </View>
                   </View>
 
-                  {/* Información del Animal */}
                   <View style={styles.animalInfo}>
                     <Text style={styles.animalName} numberOfLines={1}>
                       {animal.nombre}
                     </Text>
                     <Text style={styles.animalCode}>{animal.codigo}</Text>
-                    
-                    {/* Estado de salud */}
                     <View style={styles.animalDetails}>
                       <Text style={styles.animalStatus} numberOfLines={1}>
                         {animal.estado}
                       </Text>
                       <Text style={styles.animalAge}>{animal.edad}</Text>
                     </View>
-
-                    {/* Información adicional si es hembra */}
-                    {animal.sexo === 'Hembra' && animal.reproduccion && (
-                      <View style={styles.reproduccionBadge}>
-                        <Text style={styles.reproduccionText}>
-                          {animal.reproduccion}
-                        </Text>
-                      </View>
-                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -265,24 +360,70 @@ export default function DetallesLote() {
           )}
         </View>
 
-        {/* Información Adicional */}
+        {/* Información Adicional Mejorada */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información Adicional</Text>
-          <View style={styles.infoItem}>
-            <Calendar size={18} color="#64748B" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Fecha de Creación</Text>
-              <Text style={styles.infoValue}>
-                {lote.fechaCreacion?.toDate ? 
-                  new Date(lote.fechaCreacion.toDate()).toLocaleDateString() : 
-                  'No disponible'
-                }
-              </Text>
+          <Text style={styles.sectionTitle}>Información del Lote</Text>
+          
+          <View style={styles.infoList}>
+            <View style={styles.infoListItem}>
+              <Calendar size={18} color={COLORS.gray} />
+              <View style={styles.infoText}>
+                <Text style={styles.infoLabel}>Fecha de Creación</Text>
+                <Text style={styles.infoValue}>
+                  {lote.fechaCreacion?.toDate ? 
+                    new Date(lote.fechaCreacion.toDate()).toLocaleDateString('es-ES', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : 
+                    'No disponible'
+                  }
+                </Text>
+              </View>
             </View>
+
+            {lote.tipoUso && (
+              <View style={styles.infoListItem}>
+                <Text style={styles.infoIcon}>🌱</Text>
+                <View style={styles.infoText}>
+                  <Text style={styles.infoLabel}>Tipo de Uso</Text>
+                  <Text style={styles.infoValue}>{lote.tipoUso}</Text>
+                </View>
+              </View>
+            )}
+
+            {lote.forrajePredominante && (
+              <View style={styles.infoListItem}>
+                <Text style={styles.infoIcon}>🌿</Text>
+                <View style={styles.infoText}>
+                  <Text style={styles.infoLabel}>Forraje Predominante</Text>
+                  <Text style={styles.infoValue}>{lote.forrajePredominante}</Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Espacio al final */}
+        {/* Botones de Acción - Eliminado el duplicado de editar */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={[styles.button, styles.dangerButton]}
+            onPress={handleEliminarLote}
+            disabled={eliminando}
+          >
+            {eliminando ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <Trash2 size={20} color={COLORS.white} />
+                <Text style={[styles.buttonText, styles.dangerButtonText]}>
+                  Eliminar Lote
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
@@ -292,210 +433,241 @@ export default function DetallesLote() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
   },
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
+    padding: SPACING.xl,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: SPACING.md,
     fontSize: 16,
-    color: '#64748B',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 20,
+    color: COLORS.gray,
+    fontWeight: '500',
   },
   errorText: {
     fontSize: 18,
-    color: '#EF4444',
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    color: '#005246',
+    color: COLORS.error,
+    marginBottom: SPACING.lg,
     fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: COLORS.lightGray,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#005246',
+    fontWeight: '700',
+    color: COLORS.primary,
   },
-  editButton: {
-    padding: 8,
-    backgroundColor: '#E8F0F2',
+  iconButton: {
+    padding: SPACING.sm,
+    backgroundColor: COLORS.secondary,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8F0F2',
   },
   imageSection: {
     position: 'relative',
   },
   loteImage: {
     width: '100%',
-    height: 250,
+    height: 220,
   },
   imageOverlay: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: SPACING.md,
+    right: SPACING.md,
   },
   animalesCountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 82, 70, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
     borderRadius: 16,
-    gap: 6,
+    gap: SPACING.xs,
   },
   animalesCountText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
   },
-  mainInfo: {
-    backgroundColor: '#fff',
-    padding: 20,
-    alignItems: 'center',
+  section: {
+    backgroundColor: COLORS.white,
+    marginTop: SPACING.md,
+    padding: SPACING.lg,
   },
   loteName: {
     fontSize: 28,
     fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 8,
+    marginBottom: SPACING.md,
     textAlign: 'center',
   },
-  areaContainer: {
+  estadoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: 20,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+    alignSelf: 'center',
   },
-  areaText: {
-    fontSize: 16,
-    color: '#005246',
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 8,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
+  estadoBadgeText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#005246',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
     textTransform: 'uppercase',
   },
-  section: {
-    backgroundColor: '#fff',
-    marginTop: 8,
-    padding: 20,
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.lg,
+    marginTop: SPACING.sm,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8F0F2',
+  },
+  infoCard: {
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8F0F2',
+  },
+  estadoInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  estadoInfoText: {
+    flex: 1,
+  },
+  estadoDescripcion: {
+    fontSize: 14,
+    color: COLORS.gray,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#005246',
+    color: COLORS.primary,
+    marginBottom: SPACING.sm,
   },
   addButton: {
-    width: 36,
-    height: 36,
-    backgroundColor: '#E8F0F2',
-    borderRadius: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8F0F2',
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: SPACING.xl,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E8F0F2',
+    borderStyle: 'dashed',
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#005246',
-    marginBottom: 8,
+    color: COLORS.primary,
+    marginBottom: SPACING.sm,
     textAlign: 'center',
   },
-  emptyText: {
+  emptySubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: COLORS.gray,
+    marginBottom: SPACING.lg,
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
   },
-  emptyActionButton: {
-    backgroundColor: '#005246',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     borderRadius: 12,
+    gap: SPACING.sm,
   },
-  emptyActionText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+  },
+  dangerButton: {
+    backgroundColor: COLORS.error,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  primaryButtonText: {
+    color: COLORS.white,
+  },
+  dangerButtonText: {
+    color: COLORS.white,
   },
   animalesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: SPACING.sm,
     justifyContent: 'space-between',
   },
   animalCard: {
-    width: (screenWidth - 52) / 2, // 2 columnas con padding
-    backgroundColor: '#F8FAFC',
+    width: (screenWidth - SPACING.lg * 2 - SPACING.sm) / 2,
+    backgroundColor: COLORS.white,
     borderRadius: 16,
-    padding: 12,
+    padding: SPACING.sm,
     borderWidth: 1,
     borderColor: '#E8F0F2',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   animalImageContainer: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   animalImage: {
     width: '100%',
@@ -522,7 +694,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: COLORS.white,
   },
   sexoBadge: {
     position: 'absolute',
@@ -534,11 +706,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8F0F2',
   },
   sexoText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#005246',
+    color: COLORS.primary,
   },
   animalInfo: {
     flex: 1,
@@ -551,51 +725,52 @@ const styles = StyleSheet.create({
   },
   animalCode: {
     fontSize: 12,
-    color: '#64748B',
-    marginBottom: 8,
+    color: COLORS.gray,
+    marginBottom: SPACING.sm,
+    fontWeight: '500',
   },
   animalDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   animalStatus: {
     fontSize: 12,
-    color: '#64748B',
+    color: COLORS.gray,
     fontWeight: '500',
     flex: 1,
   },
   animalAge: {
     fontSize: 11,
-    color: '#64748B',
+    color: COLORS.gray,
     fontWeight: '500',
   },
-  reproduccionBadge: {
-    backgroundColor: '#E8F0F2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+  infoList: {
+    gap: SPACING.sm,
   },
-  reproduccionText: {
-    fontSize: 10,
-    color: '#005246',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  infoItem: {
+  infoListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  infoIcon: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
   },
   infoText: {
     flex: 1,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: COLORS.gray,
     marginBottom: 2,
+    fontWeight: '500',
   },
   infoValue: {
     fontSize: 16,
@@ -603,6 +778,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomSpacer: {
-    height: 20,
+    height: SPACING.lg,
   },
 });

@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from 'lucide-react-native';
@@ -143,6 +145,37 @@ export default function EditarLoteScreen() {
     }
   };
 
+  const tomarFoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso requerido', 'Se necesita acceso a la cámara para tomar fotos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [16, 9],
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        setImagen(result.assets[0].uri);
+        
+        setGuardando(true);
+        const base64 = await convertirImagenABase64(result.assets[0].uri);
+        setImagenBase64(base64);
+        setGuardando(false);
+      }
+    } catch (error) {
+      console.error('Error al tomar foto:', error);
+      Alert.alert('Error', 'No se pudo tomar la foto');
+      setGuardando(false);
+    }
+  };
+
   // Actualizar lote
   const handleActualizar = async () => {
     if (!user || !loteId) {
@@ -197,45 +230,60 @@ export default function EditarLoteScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 🔹 Barra superior */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="#fff" size={24} />
-          <Text style={styles.backText}>Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Lote</Text>
+      {/* 🔹 Header Mejorado */}
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+          >
+            <ArrowLeft color="#fff" size={28} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Editar Lote</Text>
+          <View style={styles.headerSpacer} />
+        </View>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <LoteForm
-          form={form}
-          onChange={handleChange}
-          imagen={imagen}
-          imagenBase64={imagenBase64}
-          onSeleccionarImagen={seleccionarImagen}
-          onSeleccionarAnimales={() => setModalVisible(true)}
-          animalesSeleccionados={animalesSeleccionados}
-          guardando={guardando}
-          modoEdicion={true}
-        />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.keyboardView}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <LoteForm
+            form={form}
+            onChange={handleChange}
+            imagen={imagen}
+            imagenBase64={imagenBase64}
+            onSeleccionarImagen={seleccionarImagen}
+            onTomarFoto={tomarFoto}
+            onSeleccionarAnimales={() => setModalVisible(true)}
+            animalesSeleccionados={animalesSeleccionados}
+            guardando={guardando}
+            modoEdicion={true}
+          />
 
-        {/* Botón Actualizar */}
-        <View style={styles.footer}>
-          <TouchableOpacity 
-            style={[
-              styles.saveButton, 
-              guardando && styles.saveButtonDisabled
-            ]} 
-            onPress={handleActualizar}
-            disabled={guardando}
-          >
-            {guardando ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Actualizar Lote</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          {/* Botón Actualizar - Con mejor espaciado */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.saveButton, 
+                guardando && styles.saveButtonDisabled
+              ]} 
+              onPress={handleActualizar}
+              disabled={guardando}
+            >
+              {guardando ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Actualizar Lote</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Modal de selección de animales */}
@@ -251,47 +299,85 @@ export default function EditarLoteScreen() {
   );
 }
 
-// Reutiliza los mismos estilos de AgregarLoteScreen
-const styles = {
-  safeArea: { flex: 1, backgroundColor: '#f9f9f9' },
+// Reutilizamos exactamente los mismos estilos
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F8FAFC',
   },
-  loadingText: { marginTop: 12, fontSize: 16, color: '#64748B' },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '500',
+  },
   header: {
     backgroundColor: '#005246',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingBottom: 12,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    justifyContent: 'space-between',
+    height: 40,
   },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginRight: 10 },
-  backText: { color: '#fff', fontWeight: '600', fontSize: 16, marginLeft: 4 },
-  headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: 18, marginLeft: 10 },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E8F0F2',
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    flex: 1,
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 30,
   },
   saveButton: {
-    backgroundColor: '#005246',
-    paddingVertical: 15,
-    borderRadius: 14,
+    backgroundColor: '#008C73',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#008C73',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   saveButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    opacity: 0.6,
   },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-};
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});

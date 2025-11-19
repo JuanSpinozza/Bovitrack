@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { Camera } from 'lucide-react-native';
+import { Camera, Image as ImageIcon } from 'lucide-react-native';
 
 // Estados disponibles para el lote
 export const ESTADOS_LOTE = [
@@ -34,6 +34,7 @@ interface LoteFormProps {
   imagen: string | null;
   imagenBase64: string | null;
   onSeleccionarImagen: () => void;
+  onTomarFoto: () => void; // ✅ Nueva prop agregada
   onSeleccionarAnimales: () => void;
   animalesSeleccionados: string[];
   guardando: boolean;
@@ -46,6 +47,7 @@ export default function LoteForm({
   imagen,
   imagenBase64,
   onSeleccionarImagen,
+  onTomarFoto, // ✅ Recibiendo la nueva prop
   onSeleccionarAnimales,
   animalesSeleccionados,
   guardando,
@@ -63,89 +65,111 @@ export default function LoteForm({
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
-      {/* Campos de texto */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nombre del lote *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ingrese el nombre del lote"
-          placeholderTextColor="#9BA4B5"
-          value={form.nombre}
-          onChangeText={(text) => onChange('nombre', text)}
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Área del lote (m²) *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ingrese el área"
-          placeholderTextColor="#9BA4B5"
-          keyboardType="numeric"
-          value={form.area}
-          onChangeText={(text) => onChange('area', text)}
-        />
-      </View>
-
-      {/* Estado del Lote */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Estado del lote</Text>
-        <View style={styles.estadosContainer}>
-          {ESTADOS_LOTE.map((estado) => (
-            <TouchableOpacity
-              key={estado}
-              style={[
-                styles.estadoOption,
-                form.estado === estado && {
-                  backgroundColor: getEstadoColor(estado),
-                  borderColor: getEstadoColor(estado),
-                }
-              ]}
-              onPress={() => onChange('estado', estado)}
-            >
-              <Text style={[
-                styles.estadoText,
-                form.estado === estado && styles.estadoTextSelected
-              ]}>
-                {estado}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Sección: Foto - Actualizada con dos botones */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Foto del Lote</Text>
+        <View style={styles.photoContainer}>
+          {imagen ? (
+            <Image 
+              source={{ uri: imagen }} 
+              style={styles.photo} 
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <ImageIcon color="#9BA4B5" size={48} />
+              <Text style={styles.photoPlaceholderText}>
+                Agregar foto del lote
               </Text>
-              {form.estado === estado && (
-                <Text style={styles.selectedCheck}>✓</Text>
-              )}
-            </TouchableOpacity>
-          ))}
+            </View>
+          )}
+        </View>
+        <View style={styles.photoButtons}>
+          <TouchableOpacity 
+            style={styles.photoButton} 
+            onPress={onSeleccionarImagen}
+            disabled={guardando}
+          >
+            <ImageIcon color="#005246" size={20} />
+            <Text style={styles.photoButtonText}>
+              {guardando ? 'Procesando...' : 'Subir Foto'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.photoButton} 
+            onPress={onTomarFoto}
+            disabled={guardando}
+          >
+            <Camera color="#005246" size={20} />
+            <Text style={styles.photoButtonText}>
+              {guardando ? 'Procesando...' : 'Tomar Foto'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Imagen */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Imagen del lote</Text>
-        <TouchableOpacity 
-          style={styles.imageButton} 
-          onPress={onSeleccionarImagen}
-          disabled={guardando}
-        >
-          <Camera size={20} color="#005246" />
-          <Text style={styles.imageButtonText}>
-            {guardando ? 'Procesando imagen...' : 'Seleccionar Imagen'}
-          </Text>
-        </TouchableOpacity>
-        {imagen && (
-          <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: imagen }} style={styles.imagePreview} />
-            {guardando && (
-              <View style={styles.imageOverlay}>
-                <ActivityIndicator size="small" color="#fff" />
-              </View>
-            )}
+      {/* Campos de texto */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Información Básica</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nombre del lote *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese el nombre del lote"
+            placeholderTextColor="#9BA4B5"
+            value={form.nombre}
+            onChangeText={(text) => onChange('nombre', text)}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Área del lote (m²) *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese el área"
+            placeholderTextColor="#9BA4B5"
+            keyboardType="numeric"
+            value={form.area}
+            onChangeText={(text) => onChange('area', text)}
+          />
+        </View>
+
+        {/* Estado del Lote */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Estado del lote</Text>
+          <View style={styles.estadosContainer}>
+            {ESTADOS_LOTE.map((estado) => (
+              <TouchableOpacity
+                key={estado}
+                style={[
+                  styles.estadoOption,
+                  form.estado === estado && {
+                    backgroundColor: getEstadoColor(estado),
+                    borderColor: getEstadoColor(estado),
+                  }
+                ]}
+                onPress={() => onChange('estado', estado)}
+              >
+                <Text style={[
+                  styles.estadoText,
+                  form.estado === estado && styles.estadoTextSelected
+                ]}>
+                  {estado}
+                </Text>
+                {form.estado === estado && (
+                  <Text style={styles.selectedCheck}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
+        </View>
       </View>
 
       {/* Animales */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Animales en el lote</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Animales en el Lote</Text>
         <TouchableOpacity 
           style={styles.animalesButton} 
           onPress={onSeleccionarAnimales}
@@ -163,8 +187,8 @@ export default function LoteForm({
       </View>
 
       {/* 🔹 OPCIONES AVANZADAS (OPCIONALES) */}
-      <View style={styles.advancedSection}>
-        <Text style={styles.advancedTitle}>⚙️ Opciones avanzadas (opcionales)</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>⚙️ Opciones Avanzadas (Opcionales)</Text>
         
         {/* Área productiva */}
         <View style={styles.inputGroup}>
@@ -225,7 +249,26 @@ export default function LoteForm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 16,
+  },
+  section: {
+    backgroundColor: '#fff',
+    marginVertical: 8,
     padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#005246',
+    marginBottom: 16,
   },
   inputGroup: {
     marginBottom: 16,
@@ -233,18 +276,67 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#005246',
+    color: '#334155',
     marginBottom: 6,
   },
   input: {
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    fontSize: 16,
+    color: '#1E293B',
+  },
+  photoContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  photo: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  photoPlaceholderText: {
+    marginTop: 8,
+    color: '#9BA4B5',
     fontSize: 14,
-    color: '#333',
+    fontWeight: '500',
+  },
+  photoButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9F8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#008C73',
+    minWidth: 140,
+    justifyContent: 'center',
+  },
+  photoButtonText: {
+    color: '#005246',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
   },
   estadosContainer: {
     gap: 8,
@@ -256,66 +348,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     backgroundColor: '#fff',
   },
   estadoText: {
     fontSize: 14,
-    color: '#333',
+    color: '#334155',
     flex: 1,
   },
   estadoTextSelected: {
     color: '#fff',
     fontWeight: '600',
   },
-  imageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F0F2',
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  imageButtonText: {
-    color: '#005246',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  imagePreviewContainer: {
-    position: 'relative',
-    marginTop: 10,
-  },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   animalesButton: {
-    backgroundColor: '#E8F0F2',
-    padding: 12,
+    backgroundColor: '#F0F9F8',
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#008C73',
+    borderStyle: 'solid',
   },
   animalesButtonText: {
     color: '#005246',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 16,
   },
   animalesSeleccionados: {
-    marginTop: 8,
-    padding: 8,
+    marginTop: 12,
+    padding: 12,
     backgroundColor: '#F0F9FF',
     borderRadius: 8,
     borderWidth: 1,
@@ -325,27 +387,13 @@ const styles = StyleSheet.create({
     color: '#005246',
     fontWeight: '600',
     textAlign: 'center',
-  },
-  advancedSection: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  advancedTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#005246',
-    marginBottom: 16,
-    textAlign: 'center',
+    fontSize: 14,
   },
   dropdownContainer: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
   },
   dropdownOption: {
@@ -355,14 +403,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F1F1',
+    borderBottomColor: '#F1F5F9',
   },
   dropdownOptionSelected: {
-    backgroundColor: '#E8F0F2',
+    backgroundColor: '#F0F9F8',
   },
   dropdownOptionText: {
     fontSize: 14,
-    color: '#333',
+    color: '#334155',
     flex: 1,
   },
   dropdownOptionTextSelected: {
