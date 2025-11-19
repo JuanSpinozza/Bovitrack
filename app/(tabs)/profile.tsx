@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { User } from 'firebase/auth';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { logout, subscribeToAuthChanges } from '../../services/authServices';
 
@@ -66,32 +66,46 @@ export default function ProfileScreen() {
 
       {/* Opciones de menú */}
       <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Detalles personales</Text>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() =>
+            router.push({
+              pathname: "/personal-details",
+              params: {
+                userId: user?.uid,
+                name: user?.displayName || "",
+                email: user?.email || "",
+                photoURL: encodeURIComponent(user?.photoURL || ""),
+              },
+            })
+          }
+        >
+        <Text style={styles.menuText}>Detalles personales</Text>
+        <Text style={styles.arrow}>›</Text>
+      </TouchableOpacity>
 
-        <View style={styles.menuItem}>
-          <Text style={styles.menuText}>Notificaciones activas</Text>
-          <View style={styles.toggle} />
-        </View>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Soporte</Text>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Cambiar contraseña</Text>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItemLogout} onPress={handleLogOut}>
-          <Text style={styles.logoutText}>Cerrar sesión</Text>
-          <Text style={styles.arrowRed}>›</Text>
-        </TouchableOpacity>
+      <View style={styles.menuItem}>
+        <Text style={styles.menuText}>Notificaciones activas</Text>
+        <View style={styles.toggle} />
       </View>
-    </ScrollView>
+
+      <TouchableOpacity style={styles.menuItem}>
+        <Text style={styles.menuText}>Soporte</Text>
+        <Text style={styles.arrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.menuItem}>
+        <Text style={styles.menuText}>Cambiar contraseña</Text>
+        <Text style={styles.arrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.menuItemLogout} onPress={handleLogOut}>
+        <Text style={styles.logoutText}>Cerrar sesión</Text>
+        <Text style={styles.arrowRed}>›</Text>
+      </TouchableOpacity>
+    </View>
+    </ScrollView >
   );
 }
 

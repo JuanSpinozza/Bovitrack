@@ -33,11 +33,11 @@ const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
 
 // Factor de moderación más agresivo para mejor adaptabilidad
-const moderateScale = (size: number, factor = 0.3) => 
-  size + (scale(size) - size) * factor;
+const moderateScale = (size: number, factor = 0.3) =>
+    size + (scale(size) - size) * factor;
 
-const moderateVerticalScale = (size: number, factor = 0.3) => 
-  size + (verticalScale(size) - size) * factor;
+const moderateVerticalScale = (size: number, factor = 0.3) =>
+    size + (verticalScale(size) - size) * factor;
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -122,8 +122,12 @@ export default function RegisterScreen() {
         setLoading(false);
 
         if (result.success) {
-            Alert.alert('Registro exitoso', 'Tu cuenta ha sido creada correctamente');
-            router.replace('/(tabs)/home');
+            // Alert.alert('Registro exitoso', 'Tu cuenta ha sido creada correctamente');
+            // router.replace('/(tabs)/home');
+            router.push({
+                pathname: '/complete-profile',
+                params: { userId: result.user?.uid }
+            });
         } else {
             Alert.alert('Error', result.error || 'No se pudo crear la cuenta');
         }
@@ -137,7 +141,7 @@ export default function RegisterScreen() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F5E6D3" />
-            
+
             {/* Fondo en posición absoluta para cubrir toda la pantalla */}
             <View style={styles.backgroundContainer}>
                 <Fondo w={screenDimensions.width} h={screenDimensions.height} />
@@ -163,9 +167,9 @@ export default function RegisterScreen() {
                                     transition={{ type: 'timing', duration: 700 }}
                                     style={styles.headerContent}
                                 >
-                                    <Bovi 
-                                        width={isSmallDevice ? 150 : isMediumDevice ? 160 : 180} 
-                                        height={isSmallDevice ? 150 : isMediumDevice ? 160 : 180} 
+                                    <Bovi
+                                        width={isSmallDevice ? 150 : isMediumDevice ? 160 : 180}
+                                        height={isSmallDevice ? 150 : isMediumDevice ? 160 : 180}
                                     />
                                     <Text style={styles.title}>Crear cuenta</Text>
                                 </MotiView>
