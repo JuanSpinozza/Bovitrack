@@ -1,15 +1,25 @@
-import { eliminarAnimal, formatearAnimalParaUI, obtenerAnimales } from '@/services/animalesService';
-import { obtenerLotes } from '@/services/ubicacionesService';
-import { useRouter } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TouchableOpacity, 
+  ScrollView, 
+  Alert, 
+  RefreshControl,
+  SafeAreaView,
+  Image 
+} from 'react-native';
 import { Plus } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import AnimalCard from '../../components/AnimalCard';
 import GuideCard from '../../components/GuideCard';
 import LocationCard from '../../components/LocationCard';
+import { useRouter } from 'expo-router';
+import { obtenerLotes } from '@/services/ubicacionesService';
+import { obtenerAnimales, formatearAnimalParaUI, eliminarAnimal } from '@/services/animalesService';
 import { auth } from '../../config/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Animal {
   id: string;
@@ -54,8 +64,8 @@ export default function InformacionScreen() {
   // 🔹 Verificar autenticación y cargar datos
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
       if (user) {
-        setUser(user);
         await cargarDatos();
       } else {
         setAnimales([]);
@@ -70,7 +80,11 @@ export default function InformacionScreen() {
   // 🔹 Cargar todos los datos
   const cargarDatos = async () => {
     setRefreshing(true);
-    await Promise.all([fetchAnimales(), fetchLotes()]);
+    try {
+      await Promise.all([fetchAnimales(), fetchLotes()]);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+    }
     setRefreshing(false);
   };
 
@@ -130,6 +144,14 @@ export default function InformacionScreen() {
     );
   };
 
+  // 🔹 Navegar a detalles de lote
+  const handleVerLote = (lote: Lote) => {
+    router.push({
+      pathname: '/DetallesLote',
+      params: { loteId: lote.id, loteNombre: lote.nombre }
+    });
+  };
+
   // 🔹 Datos simulados (Guías)
   const guiasAlimentacion: Guia[] = [
     {
@@ -175,9 +197,117 @@ export default function InformacionScreen() {
     return acc;
   }, {});
 
-  // 🔸 Función para determinar si la imagen es un emoji o una URI
-  const esEmoji = (imagen: string) => {
-    return !imagen.startsWith('file://') && !imagen.startsWith('http');
+  // 🔸 Renderizar contenido de la pestaña Animales
+  const renderAnimales = () => {
+    if (animales.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyEmoji}>🐄</Text>
+          <Text style={styles.emptyTitle}>No hay animales registrados</Text>
+          <Text style={styles.emptyText}>
+            Comienza agregando tu primer animal a la granja
+          </Text>
+          <TouchableOpacity 
+            style={styles.emptyButton}
+            onPress={() => router.push('/AgregarAnimal')}
+          >
+            <Text style={styles.emptyButtonText}>Agregar Primer Animal</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.listContainer}>
+        {Object.entries(animalesPorTipo).map(([tipo, lista]) => (
+          <View key={tipo} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{tipo} ({lista.length})</Text>
+            <View style={styles.animalesGrid}>
+              {lista.map((animal) => (
+                <AnimalCard
+                  key={animal.id}
+                  animal={animal}
+                  showProduction={animal.sexo === 'Hembra'}
+                  onEdit={() => handleEditarAnimal(animal)}
+                  onDelete={() => handleEliminarAnimal(animal)}
+                />
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  // 🔸 Renderizar contenido de la pestaña Lotes
+  const renderLotes = () => {
+    if (lotes.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyEmoji}>🌳</Text>
+          <Text style={styles.emptyTitle}>No hay lotes registrados</Text>
+          <Text style={styles.emptyText}>
+            Organiza tu granja agregando lotes y potreros
+          </Text>
+          <TouchableOpacity 
+            style={styles.emptyButton}
+            onPress={() => router.push('/AgregarLote')}
+          >
+            <Text style={styles.emptyButtonText}>Agregar Primer Lote</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.listContainer}>
+        <Text style={styles.categoryTitle}>Lotes y Potreros ({lotes.length})</Text>
+        <View style={styles.lotesGrid}>
+          {lotes.map((lote) => (
+            <LocationCard 
+              key={lote.id} 
+              location={lote}
+              onPress={() => handleVerLote(lote)}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // 🔸 Renderizar contenido de la pestaña Guías
+  const renderGuias = () => {
+    return (
+      <View style={styles.listContainer}>
+        <View style={styles.guiaSection}>
+          <Text style={styles.categoryTitle}>📚 Guías de Alimentación</Text>
+          {guiasAlimentacion.map((guia) => (
+            <GuideCard key={guia.id} guide={guia} />
+          ))}
+        </View>
+        
+        <View style={styles.guiaSection}>
+          <Text style={styles.categoryTitle}>🥛 Guías de Leche y Cría</Text>
+          {guiasLecheria.map((guia) => (
+            <GuideCard key={guia.id} guide={guia} />
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // 🔸 Función para determinar qué contenido mostrar
+  const renderContent = () => {
+    switch (selectedTab) {
+      case 'Animales':
+        return renderAnimales();
+      case 'Lotes':
+        return renderLotes();
+      case 'Guías':
+        return renderGuias();
+      default:
+        return renderAnimales();
+    }
   };
 
   if (loading) {
@@ -241,82 +371,7 @@ export default function InformacionScreen() {
               tintColor="#005246"
             />
           }>
-          
-          {selectedTab === 'Animales' && (
-            <View style={styles.listContainer}>
-              {Object.entries(animalesPorTipo).length > 0 ? (
-                Object.entries(animalesPorTipo).map(([tipo, lista]) => (
-                  <View key={tipo} style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>{tipo} ({lista.length})</Text>
-                    <View style={styles.animalesGrid}>
-                      {lista.map((animal) => (
-                        <AnimalCard
-                          key={animal.id}
-                          animal={animal}
-                          showProduction={animal.sexo === 'Hembra'}
-                          onEdit={() => handleEditarAnimal(animal)}
-                          onDelete={() => handleEliminarAnimal(animal)}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>🐄</Text>
-                  <Text style={styles.emptyTitle}>No hay animales registrados</Text>
-                  <Text style={styles.emptyText}>
-                    Comienza agregando tu primer animal a la granja
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.emptyButton}
-                    onPress={() => router.push('/AgregarAnimal')}
-                  >
-                    <Text style={styles.emptyButtonText}>Agregar Primer Animal</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
-
-        {selectedTab === 'Lotes' && (
-          <View style={styles.listContainer}>
-            <Text style={styles.categoryTitle}>Lotes</Text>
-            {lotes.length > 0 ? (
-              lotes.map((lote) => (
-                <LocationCard key={lote.id} location={lote} />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No hay lotes registrados.</Text>
-                <TouchableOpacity 
-                  style={styles.emptyButton}
-                  onPress={() => router.push('/AgregarLote')}
-                >
-                  <Text style={styles.emptyButtonText}>Agregar Primer Lote</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-
-          {selectedTab === 'Guías' && (
-            <View style={styles.listContainer}>
-              <View style={styles.guiaSection}>
-                <Text style={styles.categoryTitle}>📚 Guías de Alimentación</Text>
-                {guiasAlimentacion.map((guia) => (
-                  <GuideCard key={guia.id} guide={guia} />
-                ))}
-              </View>
-              
-              <View style={styles.guiaSection}>
-                <Text style={styles.categoryTitle}>🥛 Guías de Leche y Cría</Text>
-                {guiasLecheria.map((guia) => (
-                  <GuideCard key={guia.id} guide={guia} />
-                ))}
-              </View>
-            </View>
-          )}
+          {renderContent()}
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -404,7 +459,8 @@ const styles = StyleSheet.create({
   },
   listContainer: { 
     padding: 16, 
-    flex: 1 
+    flex: 1,
+    minHeight: 400, // Asegura que siempre tenga altura mínima
   },
   categorySection: {
     marginBottom: 24,
@@ -430,6 +486,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 20,
+    flex: 1,
   },
   emptyEmoji: {
     fontSize: 64,

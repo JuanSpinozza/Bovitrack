@@ -10,12 +10,12 @@ import {
   where,
   orderBy 
 } from "firebase/firestore";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { auth, db } from '../config/firebaseConfig';
 
 export interface Animal {
   id: string;
-  // Campos básicos
   'ID o código': string;
   'Nombre': string;
   'Número de arete': string;
@@ -31,20 +31,16 @@ export interface Animal {
   'Propietario o encargado': string;
   'Fecha de ingreso al hato': string;
   'Destino previsto': string;
-  
-  // Campos específicos por sexo
   'Estado reproductivo'?: string;
   'Fecha del último celo'?: string;
   'Fecha de servicio o inseminación'?: string;
   'ID del toro utilizado'?: string;
   'Número de partos'?: string;
   'Fecha del último parto'?: string;
-  
   sexo: 'Macho' | 'Hembra';
-  foto?: string;
+  foto?: string; // Ahora será Base64 o URL
+  fotoBase64?: string; // Nuevo campo para Base64
   fechaRegistro: any;
-  
-  // Arrays para registros históricos
   vacunas?: any[];
   desparasitaciones?: any[];
   tratamientos?: any[];
@@ -61,20 +57,181 @@ export interface RegistroPeso {
   observaciones?: string;
 }
 
-// Función para guardar imagen localmente
-const guardarImagenLocalmente = async (uri: string, animalId: string): Promise<string> => {
+// ✅ CLAVES PARA ASYNC STORAGE
+const ANIMAL_IMAGES_KEY = 'animal_images';
+const getAnimalImageKey = (animalId: string) => `animal_image_${animalId}`;
+
+// ✅ CONVERTIR IMAGEN A BASE64
+const convertirImagenABase64 = async (uri: string): Promise<string> => {
   try {
-    // En versiones recientes de Expo, las imágenes de la cámara/galería
-    // ya están en un lugar persistente, así que podemos usar la URI directamente
-    console.log('💾 Usando URI directa de la imagen');
-    return uri;
+    console.log('🔄 Convirtiendo imagen a Base64...');
+    
+    // Si ya es Base64, retornar directamente
+    if (uri.startsWith('data:image')) {
+      console.log('✅ Ya es Base64');
+      return uri;
+    }
+
+    // Leer archivo y convertir a Base64
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // Determinar el tipo MIME
+    const extension = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = `image/${extension === 'png' ? 'png' : 'jpeg'}`;
+
+    const base64Data = `data:${mimeType};base64,${base64}`;
+    console.log('✅ Imagen convertida a Base64');
+    
+    return base64Data;
   } catch (error) {
-    console.error('❌ Error con imagen, usando URI original:', error);
-    return uri;
+    console.error('❌ Error al convertir imagen a Base64:', error);
+    throw new Error('No se pudo procesar la imagen');
   }
 };
 
-// 🔹 Obtener todos los animales del usuario actual
+// ✅ GUARDAR IMAGEN EN ASYNC STORAGE
+const guardarImagenEnStorage = async (animalId: string, base64Data: string): Promise<void> => {
+  try {
+    const imageKey = getAnimalImageKey(animalId);
+    
+    // Guardar individualmente
+    await AsyncStorage.setItem(imageKey, base64Data);
+    
+    // Actualizar el índice de imágenes
+    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
+    const imagesIndex = existingImages ? JSON.parse(existingImages) : [];
+    
+    if (!imagesIndex.includes(animalId)) {
+      imagesIndex.push(animalId);
+      await AsyncStorage.setItem(ANIMAL_IMAGES_KEY, JSON.stringify(imagesIndex));
+    }
+    
+    console.log('✅ Imagen guardada en AsyncStorage');
+  } catch (error) {
+    console.error('❌ Error al guardar imagen en AsyncStorage:', error);
+    throw error;
+  }
+};
+
+// ✅ OBTENER IMAGEN DESDE ASYNC STORAGE
+export const obtenerImagenDesdeStorage = async (animalId: string): Promise<string | null> => {
+  try {
+    const imageKey = getAnimalImageKey(animalId);
+    const base64Data = await AsyncStorage.getItem(imageKey);
+    
+    if (base64Data) {
+      console.log('✅ Imagen recuperada de AsyncStorage');
+      return base64Data;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error al obtener imagen desde AsyncStorage:', error);
+    return null;
+  }
+};
+
+// ✅ ELIMINAR IMAGEN DE ASYNC STORAGE
+const eliminarImagenDeStorage = async (animalId: string): Promise<void> => {
+  try {
+    const imageKey = getAnimalImageKey(animalId);
+    
+    // Eliminar imagen individual
+    await AsyncStorage.removeItem(imageKey);
+    
+    // Actualizar índice
+    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
+    if (existingImages) {
+      const imagesIndex = JSON.parse(existingImages);
+      const updatedIndex = imagesIndex.filter((id: string) => id !== animalId);
+      await AsyncStorage.setItem(ANIMAL_IMAGES_KEY, JSON.stringify(updatedIndex));
+    }
+    
+    console.log('✅ Imagen eliminada de AsyncStorage');
+  } catch (error) {
+    console.error('❌ Error al eliminar imagen de AsyncStorage:', error);
+  }
+};
+
+// ✅ LIMPIAR IMÁGENES HUÉRFANAS
+export const limpiarImagenesHuerfanasStorage = async (animalesExistentes: string[]): Promise<void> => {
+  try {
+    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
+    if (!existingImages) return;
+
+    const imagesIndex = JSON.parse(existingImages);
+    const animalesSet = new Set(animalesExistentes);
+    
+    let eliminadas = 0;
+    for (const animalId of imagesIndex) {
+      if (!animalesSet.has(animalId)) {
+        await eliminarImagenDeStorage(animalId);
+        eliminadas++;
+      }
+    }
+    
+    console.log(`✅ ${eliminadas} imágenes huérfanas eliminadas`);
+  } catch (error) {
+    console.error('❌ Error limpiando imágenes huérfanas:', error);
+  }
+};
+
+// ✅ PROCESAR Y GUARDAR IMAGEN
+const procesarYGuardarImagen = async (uri: string, animalId: string): Promise<string> => {
+  try {
+    if (!uri || uri.trim() === '') {
+      return '';
+    }
+
+    // Si ya es una URL de Firebase o externa, mantenerla
+    if (uri.startsWith('http') && !uri.startsWith('http://localhost')) {
+      console.log('🌐 URL externa, se mantiene como está');
+      return uri;
+    }
+
+    // Si es file:// o asset://, convertir a Base64 y guardar
+    if (uri.startsWith('file://') || uri.startsWith('asset://') || uri.startsWith('data:image')) {
+      console.log('🖼️ Procesando imagen local...');
+      const base64Data = await convertirImagenABase64(uri);
+      await guardarImagenEnStorage(animalId, base64Data);
+      return `storage://${animalId}`; // Marcador para indicar que está en storage
+    }
+
+    // Si ya es un marcador de storage, mantenerlo
+    if (uri.startsWith('storage://')) {
+      return uri;
+    }
+
+    console.log('⚠️ Tipo de imagen no reconocido, se guarda como texto');
+    return uri;
+  } catch (error) {
+    console.error('❌ Error al procesar imagen:', error);
+    return ''; // En caso de error, retornar vacío
+  }
+};
+
+// ✅ OBTENER URL DE IMAGEN PARA MOSTRAR
+export const obtenerUrlImagen = async (foto: string | undefined): Promise<string> => {
+  if (!foto) return '';
+  
+  try {
+    // Si es un marcador de storage, obtener Base64
+    if (foto.startsWith('storage://')) {
+      const animalId = foto.replace('storage://', '');
+      const base64Data = await obtenerImagenDesdeStorage(animalId);
+      return base64Data || '';
+    }
+    
+    // Si ya es Base64 o URL externa, retornar directamente
+    return foto;
+  } catch (error) {
+    console.error('❌ Error al obtener URL de imagen:', error);
+    return '';
+  }
+};
+
 export const obtenerAnimales = async (): Promise<Animal[]> => {
   try {
     const user = auth.currentUser;
@@ -93,6 +250,11 @@ export const obtenerAnimales = async (): Promise<Animal[]> => {
     } as Animal));
     
     console.log(`✅ ${data.length} animales cargados`);
+    
+    // Limpiar imágenes huérfanas periódicamente
+    const animalIds = data.map(animal => animal.id);
+    limpiarImagenesHuerfanasStorage(animalIds).catch(console.error);
+    
     return data;
   } catch (error) {
     console.error('❌ Error al obtener animales:', error);
@@ -100,7 +262,6 @@ export const obtenerAnimales = async (): Promise<Animal[]> => {
   }
 };
 
-// 🔹 Obtener un animal específico por ID
 export const obtenerAnimalPorId = async (id: string): Promise<Animal | null> => {
   try {
     const user = auth.currentUser;
@@ -125,7 +286,7 @@ export const obtenerAnimalPorId = async (id: string): Promise<Animal | null> => 
   }
 };
 
-// 🔹 Agregar un nuevo animal (CON IMAGEN LOCAL)
+// ✅ AGREGAR ANIMAL CON MANEJO DE IMÁGENES MEJORADO
 export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegistro'>): Promise<string> => {
   try {
     const user = auth.currentUser;
@@ -135,45 +296,49 @@ export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegist
 
     console.log('🆕 Creando animal para usuario:', user.uid);
 
-    // Primero crear el documento sin la foto para obtener el ID
-    const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
-    const docRef = await addDoc(animalesRef, {
-      ...animalData,
-      foto: '', // Inicialmente vacío, se actualizará después
-      fechaRegistro: new Date(),
-    });
+    // Procesar imagen si existe
+    let fotoProcesada = '';
+    if (animalData.foto && animalData.foto.trim() !== '') {
+      try {
+        // Usar ID temporal para procesar la imagen
+        const tempId = 'temp_' + Date.now();
+        fotoProcesada = await procesarYGuardarImagen(animalData.foto, tempId);
+        console.log('✅ Imagen procesada antes de crear animal');
+      } catch (fotoError) {
+        console.error('⚠️ Error al procesar imagen:', fotoError);
+        fotoProcesada = '';
+      }
+    }
 
+    // Crear documento en Firestore
+    const datosFirestore = {
+      ...animalData,
+      foto: fotoProcesada,
+      fechaRegistro: new Date(),
+    };
+
+    const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
+    const docRef = await addDoc(animalesRef, datosFirestore);
     const animalId = docRef.id;
+
     console.log('✅ Animal creado en Firestore con ID:', animalId);
 
-    let fotoURL = animalData.foto || '';
-    
-    // Si hay una foto, guardarla localmente
-    if (animalData.foto && animalData.foto.startsWith('file://')) {
+    // Si hay imagen y se usó ID temporal, actualizar con ID real
+    if (fotoProcesada.startsWith('storage://temp_')) {
       try {
-        console.log('🖼️ Guardando imagen localmente...');
-        fotoURL = await guardarImagenLocalmente(animalData.foto, animalId);
+        // Reprocesar la imagen con el ID real
+        const nuevaFotoUrl = await procesarYGuardarImagen(animalData.foto, animalId);
+        await updateDoc(docRef, { foto: nuevaFotoUrl });
         
-        // Actualizar el documento con la ruta local de la foto
-        await updateDoc(docRef, {
-          foto: fotoURL
-        });
+        // Eliminar la temporal
+        await eliminarImagenDeStorage('temp_' + Date.now());
         
-        console.log('✅ Imagen guardada localmente y animal actualizado');
-      } catch (fotoError) {
-        console.error('⚠️ Error al guardar imagen localmente, pero animal guardado:', fotoError);
-        // Si falla, mantener la URI original
-        await updateDoc(docRef, {
-          foto: animalData.foto
-        });
+        console.log('✅ Imagen actualizada con ID real');
+      } catch (updateError) {
+        console.error('⚠️ Error al actualizar imagen con ID real:', updateError);
       }
-    } else {
-      // Si no hay imagen, actualizar con la que ya estaba
-      await updateDoc(docRef, {
-        foto: animalData.foto || ''
-      });
     }
-    
+
     console.log('🎉 Animal guardado completamente');
     return animalId;
   } catch (error: any) {
@@ -182,7 +347,7 @@ export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegist
   }
 };
 
-// 🔹 Actualizar un animal existente
+// ✅ ACTUALIZAR ANIMAL CON MANEJO DE IMÁGENES
 export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Animal, 'id' | 'fechaRegistro'>>): Promise<void> => {
   try {
     const user = auth.currentUser;
@@ -192,14 +357,28 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
 
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
     
-    // Si hay una nueva foto, guardarla localmente
-    if (animalData.foto && animalData.foto.startsWith('file://')) {
+    // Procesar nueva imagen si se proporciona
+    if (animalData.foto !== undefined) {
       try {
-        const fotoURL = await guardarImagenLocalmente(animalData.foto, id);
-        animalData.foto = fotoURL;
+        const animalActual = await obtenerAnimalPorId(id);
+        
+        // Si hay una nueva imagen, procesarla
+        if (animalData.foto && animalData.foto.trim() !== '') {
+          const nuevaFotoUrl = await procesarYGuardarImagen(animalData.foto, id);
+          animalData.foto = nuevaFotoUrl;
+          
+          // Eliminar imagen anterior si existe y es diferente
+          if (animalActual?.foto && 
+              animalActual.foto.startsWith('storage://') &&
+              animalActual.foto !== nuevaFotoUrl) {
+            await eliminarImagenDeStorage(id);
+          }
+        } else if (animalData.foto === '') {
+          // Si se elimina la imagen, borrar del storage
+          await eliminarImagenDeStorage(id);
+        }
       } catch (fotoError) {
-        console.error('⚠️ Error al guardar imagen durante actualización:', fotoError);
-        // Eliminar la foto del objeto para no actualizarla
+        console.error('⚠️ Error al procesar imagen en actualización:', fotoError);
         delete animalData.foto;
       }
     }
@@ -216,7 +395,7 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
   }
 };
 
-// 🔹 Eliminar un animal (Y SU IMAGEN LOCAL)
+// ✅ ELIMINAR ANIMAL CON LIMPIEZA DE IMAGEN
 export const eliminarAnimal = async (id: string): Promise<void> => {
   try {
     const user = auth.currentUser;
@@ -224,58 +403,21 @@ export const eliminarAnimal = async (id: string): Promise<void> => {
       throw new Error('Usuario no autenticado');
     }
 
-    // Primero obtener el animal para ver si tiene imagen local
-    const animal = await obtenerAnimalPorId(id);
-    if (animal?.foto && animal.foto.startsWith(FileSystem.documentDirectory!)) {
-      try {
-        // Eliminar la imagen local
-        await FileSystem.deleteAsync(animal.foto);
-        console.log('✅ Imagen local eliminada');
-      } catch (deleteError) {
-        console.error('⚠️ Error al eliminar imagen local:', deleteError);
-      }
-    }
+    // Eliminar imagen del storage
+    await eliminarImagenDeStorage(id);
 
+    // Eliminar documento de Firestore
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
     await deleteDoc(animalRef);
     
-    console.log(`✅ Animal ${id} eliminado`);
+    console.log(`✅ Animal ${id} eliminado completamente`);
   } catch (error) {
     console.error(`❌ Error al eliminar animal ${id}:`, error);
     throw new Error('No se pudo eliminar el animal');
   }
 };
 
-// 🔹 Función para limpiar imágenes huérfanas
-export const limpiarImagenesHuerfanas = async (): Promise<void> => {
-  try {
-    const animales = await obtenerAnimales();
-    const directorio = `${FileSystem.documentDirectory}animales/`;
-    
-    // Obtener lista de archivos en el directorio
-    const archivos = await FileSystem.readDirectoryAsync(directorio);
-    
-    // Crear conjunto de IDs de animales existentes
-    const idsAnimales = new Set(animales.map(animal => animal.id));
-    
-    // Eliminar archivos que no correspondan a animales existentes
-    for (const archivo of archivos) {
-      const idAnimal = archivo.split('_')[1]; // Extraer ID del nombre del archivo
-      
-      if (!idsAnimales.has(idAnimal)) {
-        const rutaCompleta = `${directorio}${archivo}`;
-        await FileSystem.deleteAsync(rutaCompleta);
-        console.log(`🗑️ Imagen huérfana eliminada: ${archivo}`);
-      }
-    }
-    
-    console.log('✅ Limpieza de imágenes huérfanas completada');
-  } catch (error) {
-    console.error('❌ Error en limpieza de imágenes:', error);
-  }
-};
-
-// 🔹 Buscar animales por criterios específicos
+// El resto de las funciones permanecen igual...
 export const buscarAnimales = async (criterios: {
   tipo?: string;
   sexo?: string;
@@ -291,7 +433,6 @@ export const buscarAnimales = async (criterios: {
     const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
     let q = query(animalesRef);
     
-    // Aplicar filtros si existen
     const condiciones = [];
     
     if (criterios.tipo) {
@@ -310,7 +451,6 @@ export const buscarAnimales = async (criterios: {
       condiciones.push(where('Lote o potrero actual', '==', criterios.lote));
     }
     
-    // Si hay condiciones, aplicarlas a la query
     if (condiciones.length > 0) {
       q = query(animalesRef, ...condiciones, orderBy('fechaRegistro', 'desc'));
     } else {
@@ -323,7 +463,7 @@ export const buscarAnimales = async (criterios: {
       ...doc.data()
     } as Animal));
     
-    console.log(`✅ ${data.length} animales encontrados con los criterios`);
+    console.log(`✅ ${data.length} animales encontrados`);
     return data;
   } catch (error) {
     console.error('❌ Error al buscar animales:', error);
@@ -331,7 +471,6 @@ export const buscarAnimales = async (criterios: {
   }
 };
 
-// 🔹 Obtener estadísticas de animales
 export const obtenerEstadisticasAnimales = async (): Promise<{
   total: number;
   machos: number;
@@ -350,13 +489,11 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
       porEstadoSalud: {} as Record<string, number>,
     };
     
-    // Contar por tipo de animal
     animales.forEach(animal => {
       const tipo = animal['Tipo de animal'] || 'No especificado';
       estadisticas.porTipo[tipo] = (estadisticas.porTipo[tipo] || 0) + 1;
     });
     
-    // Contar por estado de salud
     animales.forEach(animal => {
       const estado = animal['Estado de salud'] || 'No especificado';
       estadisticas.porEstadoSalud[estado] = (estadisticas.porEstadoSalud[estado] || 0) + 1;
@@ -369,7 +506,6 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
   }
 };
 
-// 🔹 Función para calcular la edad a partir de la fecha de nacimiento
 export const calcularEdad = (fechaNacimiento: string): string => {
   try {
     if (!fechaNacimiento) return 'Desconocida';
@@ -390,7 +526,6 @@ export const calcularEdad = (fechaNacimiento: string): string => {
   }
 };
 
-// 🔹 Función para formatear animal para mostrar en la UI
 export const formatearAnimalParaUI = (animal: Animal) => {
   return {
     id: animal.id,
