@@ -9,6 +9,7 @@ import {
   RefreshControl // ✅ AGREGAR ESTA IMPORTACIÓN
   ,
 
+
   ScrollView,
   StyleSheet,
   Text,
@@ -383,7 +384,7 @@ export default function HomeScreen() {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No has agregado animales a tu hato aún</Text>
               <Text style={styles.emptySubtext}>
-                Agrega tu primer animal usando el botón "+" abajo
+                Agrega tu primer animal ingresando al apartado de informacion
               </Text>
             </View>
           )}
