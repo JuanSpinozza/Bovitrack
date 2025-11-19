@@ -267,7 +267,8 @@ export const formatearLoteParaUI = (lote: Lote) => {
     nombre: lote.nombre || 'Sin nombre',
     area: lote.area || 'No especificado',
     imagen: lote.imagen || '',
-    cantidadAnimales: lote.animales.length,
+    animales: lote.animales || [],
+    cantidadAnimales: lote.animales?.length || 0,
     fechaCreacion: lote.fechaCreacion,
   };
 };

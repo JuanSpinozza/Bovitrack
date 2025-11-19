@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Pressable } from 'react-native';
 import { Edit3, Trash2, Calendar, Scale, Droplets, Baby } from 'lucide-react-native';
 
 interface Animal {
@@ -23,12 +23,12 @@ interface AnimalCardProps {
   showProduction: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onPress?: () => void;
 }
 
-export default function AnimalCard({ animal, showProduction, onEdit, onDelete }: AnimalCardProps) {
+export default function AnimalCard({ animal, showProduction, onEdit, onDelete, onPress }: AnimalCardProps) {
   const esImagenBase64 = animal.imagen?.startsWith('data:image');
   const emojiPorDefecto = animal.sexo === 'Hembra' ? '🐄' : '🐂';
-  console.log(animal.reproduccion);
   // Colores según el estado de salud
   const getStatusColor = () => {
     switch (animal.estado?.toLowerCase()) {
@@ -46,128 +46,133 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
   };
 
   return (
-    <View style={styles.card}>
-      {/* HEADER */}
-      <View style={styles.cardHeader}>
-        {/* Imagen/Avatar */}
-        <View style={styles.avatarContainer}>
-          {esImagenBase64 ? (
-            <Image 
-              source={{ uri: animal.imagen }} 
-              style={styles.animalImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.emojiContainer}>
-              <Text style={styles.emoji}>{animal.imagen || emojiPorDefecto}</Text>
-            </View>
-          )}
-          
-          {/* Badge de estado de salud */}
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-            <Text style={styles.statusText}>{animal.estado}</Text>
-          </View>
-        </View>
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+    >
+      <View style={styles.card}>
+        {/* HEADER */}
+        <View style={styles.cardHeader}>
+          {/* Imagen/Avatar */}
+          <View style={styles.avatarContainer}>
+            {esImagenBase64 ? (
+              <Image
+                source={{ uri: animal.imagen }}
+                style={styles.animalImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.emojiContainer}>
+                <Text style={styles.emoji}>{animal.imagen || emojiPorDefecto}</Text>
+              </View>
+            )}
 
-        {/* Información principal */}
-        <View style={styles.headerInfo}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{animal.nombre}</Text>
-            <View style={styles.sexoBadge}>
-              <Text style={styles.sexoText}>{getSexIcon()}</Text>
-            </View>
-          </View>
-          <Text style={styles.code}>ID: {animal.codigo}</Text>
-          {animal.raza && <Text style={styles.raza}>{animal.raza}</Text>}
-        </View>
-
-        {/* Botones de acción */}
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-            <Edit3 size={18} color="#005246" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onDelete} style={[styles.actionButton, styles.deleteButton]}>
-            <Trash2 size={18} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <View style={styles.divider} />
-
-      {/* BODY - Información con iconos */}
-      <View style={styles.cardBody}>
-        <View style={styles.infoGrid}>
-          {/* Edad */}
-          <View style={styles.infoItem}>
-            <View style={styles.iconContainer}>
-              <Calendar size={16} color="#005246" />
-            </View>
-            <View>
-              <Text style={styles.infoLabel}>Edad</Text>
-              <Text style={styles.infoValue}>{animal.edad}</Text>
+            {/* Badge de estado de salud */}
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+              <Text style={styles.statusText}>{animal.estado}</Text>
             </View>
           </View>
 
-          {/* Peso */}
-          {animal.peso && (
-            <View style={styles.infoItem}>
-              <View style={styles.iconContainer}>
-                <Scale size={16} color="#005246" />
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Peso</Text>
-                <Text style={styles.infoValue}>{animal.peso}</Text>
+          {/* Información principal */}
+          <View style={styles.headerInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{animal.nombre}</Text>
+              <View style={styles.sexoBadge}>
+                <Text style={styles.sexoText}>{getSexIcon()}</Text>
               </View>
             </View>
-          )}
+            <Text style={styles.code}>ID: {animal.codigo}</Text>
+            {animal.raza && <Text style={styles.raza}>{animal.raza}</Text>}
+          </View>
 
-          {/* Estado Productivo */}
-          {showProduction && animal.produccion && (
-            <View style={styles.infoItem}>
-              <View style={styles.iconContainer}>
-                <Droplets size={16} color="#005246" />
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Producción</Text>
-                <Text style={styles.infoValue}>{animal.produccion}</Text>
-              </View>
-            </View>
-          )}
+          {/* Botones de acción */}
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
+              <Edit3 size={18} color="#005246" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onDelete} style={[styles.actionButton, styles.deleteButton]}>
+              <Trash2 size={18} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          {/* Estado Reproductivo */}
-          {animal.reproduccion && (
+        <View style={styles.divider} />
+
+        {/* BODY - Información con iconos */}
+        <View style={styles.cardBody}>
+          <View style={styles.infoGrid}>
+            {/* Edad */}
             <View style={styles.infoItem}>
               <View style={styles.iconContainer}>
-                <Baby size={16} color="#005246" />
+                <Calendar size={16} color="#005246" />
               </View>
               <View>
-                <Text style={styles.infoLabel}>Reproducción</Text>
-                <Text style={styles.infoValue}>{animal.reproduccion}</Text>
+                <Text style={styles.infoLabel}>Edad</Text>
+                <Text style={styles.infoValue}>{animal.edad}</Text>
               </View>
             </View>
-          )}
+
+            {/* Peso */}
+            {animal.peso && (
+              <View style={styles.infoItem}>
+                <View style={styles.iconContainer}>
+                  <Scale size={16} color="#005246" />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Peso</Text>
+                  <Text style={styles.infoValue}>{animal.peso}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Estado Productivo */}
+            {showProduction && animal.produccion && (
+              <View style={styles.infoItem}>
+                <View style={styles.iconContainer}>
+                  <Droplets size={16} color="#005246" />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Producción</Text>
+                  <Text style={styles.infoValue}>{animal.produccion}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Estado Reproductivo */}
+            {animal.reproduccion && (
+              <View style={styles.infoItem}>
+                <View style={styles.iconContainer}>
+                  <Baby size={16} color="#005246" />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Reproducción</Text>
+                  <Text style={styles.infoValue}>{animal.reproduccion}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* FOOTER - Solo tags básicos */}
+        <View style={styles.cardFooter}>
+          <View style={styles.footerTags}>
+            {/* Sexo */}
+            {animal.sexo && (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{animal.sexo}</Text>
+              </View>
+            )}
+
+            {/* Tipo/Propósito */}
+            {animal.tipo && (
+              <View style={[styles.tag, styles.typeTag]}>
+                <Text style={styles.typeTagText}>{animal.tipo}</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
-
-      {/* FOOTER - Solo tags básicos */}
-      <View style={styles.cardFooter}>
-        <View style={styles.footerTags}>
-          {/* Sexo */}
-          {animal.sexo && (
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{animal.sexo}</Text>
-            </View>
-          )}
-
-          {/* Tipo/Propósito */}
-          {animal.tipo && (
-            <View style={[styles.tag, styles.typeTag]}>
-              <Text style={styles.typeTagText}>{animal.tipo}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
