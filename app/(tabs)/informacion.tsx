@@ -87,6 +87,13 @@ export default function InformacionScreen() {
     setRefreshing(false);
   };
 
+  const handleVerDetallesAnimal = (animal: Animal) => {
+  router.push({
+    pathname: '/DetallesAnimal',
+    params: { animalId: animal.id }
+  });
+};
+
   // 🔹 Cargar animales usando el servicio
   const fetchAnimales = async () => {
     try {
@@ -143,13 +150,23 @@ export default function InformacionScreen() {
     );
   };
 
-  // 🔹 Navegar a detalles de lote
-  const handleVerLote = (lote: Lote) => {
-    router.push({
-      pathname: '/DetallesLote',
-      params: { loteId: lote.id, loteNombre: lote.nombre }
-    });
-  };
+const handleVerDetallesLote = (lote: Lote) => {
+  router.push({
+    pathname: '/DetallesLote',
+    params: { 
+      loteId: lote.id,
+      loteNombre: lote.nombre 
+    }
+  });
+};
+
+// 🔹 Manejar editar lote
+const handleEditarLote = (lote: Lote) => {
+  router.push({
+    pathname: '/EditarLote',
+    params: { loteId: lote.id }
+  });
+};
 
   // 🔹 Datos simulados (Guías)
   const guiasAlimentacion: Guia[] = [
@@ -229,6 +246,7 @@ export default function InformacionScreen() {
                   showProduction={animal.sexo === 'Hembra'}
                   onEdit={() => handleEditarAnimal(animal)}
                   onDelete={() => handleEliminarAnimal(animal)}
+                  onPress={()=> handleVerDetallesAnimal(animal)}
                 />
               ))}
             </View>
@@ -266,7 +284,8 @@ export default function InformacionScreen() {
             <LocationCard 
               key={lote.id} 
               location={lote}
-              onPress={() => handleVerLote(lote)}
+              onPress={() => handleVerDetallesLote(lote)}
+              onEdit={() => handleEditarLote(lote)}
             />
           ))}
         </View>
