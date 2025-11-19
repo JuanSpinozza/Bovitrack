@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { MotiView } from 'moti';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  Dimensions,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import Bovi from '../assets/images/bovi.svg';
 import { Fondo } from '../components/ui/fondo';
-import { AntDesign } from '@expo/vector-icons';
-import { MotiView } from 'moti';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { loginWithEmail, loginWithGoogle } from '../services/authServices';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -47,6 +47,7 @@ export default function LogInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: '364928939451-7torjuj68jdpp1tmoal9u11t034tc92k.apps.googleusercontent.com',
@@ -97,6 +98,10 @@ export default function LogInScreen() {
   const handleGooglePress = () => {
     setLoading(true);
     promptAsync();
+  };
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -153,17 +158,32 @@ export default function LogInScreen() {
                   autoCapitalize="none"
                   editable={!loading}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholderTextColor="#8B7355"
-                  placeholder="Contraseña"
-                  value={password}
-                  onChangeText={setPassword}
-                  keyboardType="default"
-                  autoCapitalize="none"
-                  editable={!loading}
-                  secureTextEntry
-                />
+                
+                {/* Campo de contraseña con ojo */}
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholderTextColor="#8B7355"
+                    placeholder="Contraseña"
+                    value={password}
+                    onChangeText={setPassword}
+                    keyboardType="default"
+                    autoCapitalize="none"
+                    editable={!loading}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={toggleShowPassword}
+                    disabled={loading}
+                  >
+                    <Ionicons 
+                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={moderateScale(20)} 
+                      color="#8B7355" 
+                    />
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity
                   style={[styles.button, loading && styles.buttonDisabled]}
@@ -301,6 +321,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  // Nuevos estilos para el campo de contraseña con ojo
+  passwordContainer: {
+    position: 'relative',
+    marginBottom: moderateVerticalScale(14),
+  },
+  passwordInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateVerticalScale(14),
+    fontSize: moderateScale(15),
+    borderWidth: 1,
+    borderColor: '#E5D5C5',
+    color: '#2C1810',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    paddingRight: moderateScale(50), // Espacio para el ícono del ojo
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: moderateScale(16),
+    top: moderateVerticalScale(14),
+    height: moderateScale(24),
+    width: moderateScale(24),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   button: {
     backgroundColor: '#3D2817',
