@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, Star, X, Camera, Upload } from 'lucide-react-native';
+import { ArrowLeft, Camera, Plus, Star, Upload, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert, Image, KeyboardAvoidingView,
@@ -27,19 +27,16 @@ export default function AgregarAnimalScreen() {
     // Campos básicos
     'ID o código': '',
     'Nombre': '',
-    'Número de arete': '',
-    'Tipo de animal': '',
     'Raza': '',
-    'Color o señas particulares': '',
+    'Características del animal': '',
     'Fecha de nacimiento': '',
-    'Origen': '',
+    'Lugar de nacimiento': '',
     'Peso actual': '',
     'Fecha del último pesaje': '',
     'Estado de salud': 'Sano',
     'Lote o potrero actual': '',
     'Propietario o encargado': '',
     'Fecha de ingreso al hato': new Date().toISOString().split('T')[0],
-    'Destino previsto': '',
     
     // Campos reproductivos (inicialmente vacíos)
     'Estado reproductivo': '',
@@ -67,10 +64,65 @@ export default function AgregarAnimalScreen() {
   const [modalEnfermedad, setModalEnfermedad] = useState(false);
   const [modalPeso, setModalPeso] = useState(false);
 
-  const [tempVacuna, setTempVacuna] = useState({ nombre: '', fecha: '', dosis: '' });
-  const [tempDesparasitacion, setTempDesparasitacion] = useState({ nombre: '', fecha: '', dosis: '' });
-  const [tempTratamiento, setTempTratamiento] = useState({ nombre: '', fecha: '', descripcion: '' });
-  const [tempEnfermedad, setTempEnfermedad] = useState({ nombre: '', fecha: '', estado: '' });
+  // Estados temporales expandidos para cada modal
+  const [tempVacuna, setTempVacuna] = useState({
+    nombre_vacuna: '', 
+    fecha_aplicacion: '', 
+    dosis: '',
+    via_administracion: '',
+    proxima_dosis: '',
+    vacuna_fabricante: '',
+    fecha_vencimiento_lote: '',
+    administrado_por: '',
+    lugar_aplicacion: '',
+    periodo_retiro_leche_dias: '',
+    periodo_retiro_carne_dias: '',
+    costo: '',
+    observaciones: '',
+  });
+
+  const [tempDesparasitacion, setTempDesparasitacion] = useState({
+    nombre_producto: '',
+    tipo_parasito: '',
+    fecha_aplicacion: '',
+    dosis: '',
+    via_administracion: '',
+    proxima_aplicacion: '',
+    ingrediente_activo: '',
+    administrado_por: '',
+    lugar_aplicacion: '',
+    eficacia_verificacion_fecha: '',
+    resistencia_sospechada: '',
+    costo: '',
+    observaciones: '',
+  });
+
+  const [tempTratamiento, setTempTratamiento] = useState({
+    nombre_tratamiento: '',
+    diagnostico_motivo: '',
+    fecha_inicio: '',
+    medicamento_producto: '',
+    descripcion_tratamiento: '',
+    via_administracion: '',
+    duracion_dias: '',
+    fecha_fin: '',
+    veterinario_responsable: '',
+    costo: '',
+    evolucion_observaciones: '',
+    proxima_revision_fecha: '',
+  });
+
+  const [tempEnfermedad, setTempEnfermedad] = useState({
+    nombre_enfermedad: '',
+    fecha_diagnostico: '',
+    estado_actual: '',
+    descripcion_tratamiento_aplicado: '',
+    gravedad: '',
+    fecha_recuperacion: '',
+    observaciones: '',
+    riesgo_recurrencia: '',
+  });
+
   const [tempPeso, setTempPeso] = useState({ fecha: '', peso: '', observaciones: '' });
 
   const handleChange = (field: string, value: any) => {
@@ -151,42 +203,92 @@ export default function AgregarAnimalScreen() {
 
   // Funciones para agregar items a arrays
   const agregarVacuna = () => {
-    if (!tempVacuna.nombre || !tempVacuna.fecha) {
+    if (!tempVacuna.nombre_vacuna || !tempVacuna.fecha_aplicacion) {
       Alert.alert('Error', 'Nombre y fecha son obligatorios');
       return;
     }
     setVacunas([...vacunas, { ...tempVacuna, id: Date.now().toString() }]);
-    setTempVacuna({ nombre: '', fecha: '', dosis: '' });
+    setTempVacuna({
+      nombre_vacuna: '', 
+      fecha_aplicacion: '', 
+      dosis: '',
+      via_administracion: '',
+      proxima_dosis: '',
+      vacuna_fabricante: '',
+      fecha_vencimiento_lote: '',
+      administrado_por: '',
+      lugar_aplicacion: '',
+      periodo_retiro_leche_dias: '',
+      periodo_retiro_carne_dias: '',
+      costo: '',
+      observaciones: '',
+    });
     setModalVacuna(false);
   };
 
   const agregarDesparasitacion = () => {
-    if (!tempDesparasitacion.nombre || !tempDesparasitacion.fecha) {
+    if (!tempDesparasitacion.nombre_producto || !tempDesparasitacion.fecha_aplicacion) {
       Alert.alert('Error', 'Nombre y fecha son obligatorios');
       return;
     }
     setDesparasitaciones([...desparasitaciones, { ...tempDesparasitacion, id: Date.now().toString() }]);
-    setTempDesparasitacion({ nombre: '', fecha: '', dosis: '' });
+    setTempDesparasitacion({
+      nombre_producto: '',
+      tipo_parasito: '',
+      fecha_aplicacion: '',
+      dosis: '',
+      via_administracion: '',
+      proxima_aplicacion: '',
+      ingrediente_activo: '',
+      administrado_por: '',
+      lugar_aplicacion: '',
+      eficacia_verificacion_fecha: '',
+      resistencia_sospechada: '',
+      costo: '',
+      observaciones: '',
+    });
     setModalDesparasitacion(false);
   };
 
   const agregarTratamiento = () => {
-    if (!tempTratamiento.nombre || !tempTratamiento.fecha) {
+    if (!tempTratamiento.nombre_tratamiento || !tempTratamiento.fecha_inicio) {
       Alert.alert('Error', 'Nombre y fecha son obligatorios');
       return;
     }
     setTratamientos([...tratamientos, { ...tempTratamiento, id: Date.now().toString() }]);
-    setTempTratamiento({ nombre: '', fecha: '', descripcion: '' });
+    setTempTratamiento({
+      nombre_tratamiento: '',
+      diagnostico_motivo: '',
+      fecha_inicio: '',
+      medicamento_producto: '',
+      descripcion_tratamiento: '',
+      via_administracion: '',
+      duracion_dias: '',
+      fecha_fin: '',
+      veterinario_responsable: '',
+      costo: '',
+      evolucion_observaciones: '',
+      proxima_revision_fecha: '',
+    });
     setModalTratamiento(false);
   };
 
   const agregarEnfermedad = () => {
-    if (!tempEnfermedad.nombre || !tempEnfermedad.fecha) {
+    if (!tempEnfermedad.nombre_enfermedad || !tempEnfermedad.fecha_diagnostico) {
       Alert.alert('Error', 'Nombre y fecha son obligatorios');
       return;
     }
     setEnfermedades([...enfermedades, { ...tempEnfermedad, id: Date.now().toString() }]);
-    setTempEnfermedad({ nombre: '', fecha: '', estado: '' });
+    setTempEnfermedad({
+      nombre_enfermedad: '',
+      fecha_diagnostico: '',
+      estado_actual: '',
+      descripcion_tratamiento_aplicado: '',
+      gravedad: '',
+      fecha_recuperacion: '',
+      observaciones: '',
+      riesgo_recurrencia: '',
+    });
     setModalEnfermedad(false);
   };
 
@@ -219,58 +321,80 @@ export default function AgregarAnimalScreen() {
   };
 
   // Opciones para dropdowns
-  const opcionesTipoAnimal = [
-    { label: 'Bovino', value: 'Bovino' },
-    { label: 'Porcino', value: 'Porcino' },
-    { label: 'Equino', value: 'Equino' },
-    { label: 'Ovino', value: 'Ovino' },
-    { label: 'Caprino', value: 'Caprino' },
-  ];
-
   const opcionesEstadoSalud = [
     { label: 'Sano', value: 'Sano' },
-    { label: 'En observación', value: 'En observación' },
+    { label: 'Observación', value: 'Observación' },
     { label: 'Enfermo', value: 'Enfermo' },
     { label: 'En tratamiento', value: 'En tratamiento' },
-    { label: 'Recuperado', value: 'Recuperado' },
   ];
 
   const opcionesEstadoReproductivo = [
     { label: 'Vacía', value: 'Vacía' },
-    { label: 'Servida', value: 'Servida' },
-    { label: 'Preñada', value: 'Preñada' },
+    { label: 'En servicio', value: 'En servicio' },
+    { label: 'En espera de diagnóstico', value: 'En espera de diagnóstico' },
+    { label: 'Gestante', value: 'Gestante' },
     { label: 'Parida', value: 'Parida' },
+    { label: 'Lactante', value: 'Lactante' },
     { label: 'Secada', value: 'Secada' },
+    { label: 'Problema reproductivo', value: 'Problema reproductivo' },
   ];
 
   const opcionesLote = [
     { label: 'Lote A - Pastoreo Norte', value: 'Lote A' },
     { label: 'Lote B - Pastoreo Sur', value: 'Lote B' },
     { label: 'Lote C - Corral Principal', value: 'Lote C' },
-    { label: 'Lote D - Engorde', value: 'Lote D' },
   ];
 
   const opcionesProposito = [
-    { label: 'Producción de leche', value: 'Producción de leche' },
-    { label: 'Producción de carne', value: 'Producción de carne' },
-    { label: 'Reproducción', value: 'Reproducción' },
-    { label: 'Trabajo', value: 'Trabajo' },
-    { label: 'Exhibición', value: 'Exhibición' },
-    { label: 'Mascota', value: 'Mascota' },
+    { label: 'Cría', value: 'Cría' },
+    { label: 'Leche', value: 'Leche' },
+    { label: 'Engorde / Ceba', value: 'Engorde / Ceba' },
+    { label: 'Doble propósito / Multipropósito', value: 'Doble propósito / Multipropósito' },
+  ];
+
+  const opcionesViaAdministracion = [
+    { label: 'Intramuscular', value: 'Intramuscular' },
+    { label: 'Subcutánea', value: 'Subcutánea' },
+    { label: 'Intravenosa', value: 'Intravenosa' },
+    { label: 'Oral', value: 'Oral' },
+    { label: 'Tópica', value: 'Tópica' },
+  ];
+
+  const opcionesTipoParasito = [
+    { label: 'Interno', value: 'Interno' },
+    { label: 'Externo', value: 'Externo' },
+    { label: 'Ambos', value: 'Ambos' },
+  ];
+
+  const opcionesEstadoEnfermedad = [
+    { label: 'Resuelta', value: 'Resuelta' },
+    { label: 'Crónica', value: 'Crónica' },
+    { label: 'Recurrente', value: 'Recurrente' },
+  ];
+
+  const opcionesGravedad = [
+    { label: 'Leve', value: 'Leve' },
+    { label: 'Moderada', value: 'Moderada' },
+    { label: 'Severa', value: 'Severa' },
+  ];
+
+  const opcionesRiesgoRecurrencia = [
+    { label: 'Bajo', value: 'Bajo' },
+    { label: 'Medio', value: 'Medio' },
+    { label: 'Alto', value: 'Alto' },
   ];
 
   // Campos por sección
   const camposBasicos = [
     { key: 'ID o código', required: true, placeholder: 'Ej: BOV-001' },
     { key: 'Nombre', required: true, placeholder: 'Ej: Blanquita' },
-    { key: 'Número de arete', required: false, placeholder: 'Ej: 12345' },
     { key: 'Raza', required: false, placeholder: 'Ej: Holstein' },
-    { key: 'Color o señas particulares', required: false, placeholder: 'Ej: Blanco con negro' },
+    { key: 'Características del animal', required: false, placeholder: 'Ej: Blanco con negro, mancha en lomo' },
   ];
 
   const camposFechas = [
     { key: 'Fecha de nacimiento', required: false, placeholder: 'YYYY-MM-DD', type: 'date' },
-    { key: 'Fecha de ingreso al hato', required: false, placeholder: 'YYYY-MM-DD', type: 'date' },
+    { key: 'Fecha de ingreso al hato', label: 'Fecha de ingreso al hato (opcional)', required: false, placeholder: 'YYYY-MM-DD', type: 'date' },
   ];
 
   return (
@@ -363,20 +487,7 @@ export default function AgregarAnimalScreen() {
             ))}
             
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tipo de animal</Text>
-              <Dropdown
-                style={styles.dropdown}
-                data={opcionesTipoAnimal}
-                labelField="label"
-                valueField="value"
-                placeholder="Seleccione tipo"
-                value={form['Tipo de animal']}
-                onChange={(item) => handleChange('Tipo de animal', item.value)}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Propósito</Text>
+              <Text style={styles.label}>Propósito del Animal</Text>
               <Dropdown
                 style={styles.dropdown}
                 data={opcionesProposito}
@@ -394,7 +505,7 @@ export default function AgregarAnimalScreen() {
             <Text style={styles.sectionTitle}>Fechas Importantes</Text>
             {camposFechas.map((campo) => (
               <View key={campo.key} style={styles.inputGroup}>
-                <Text style={styles.label}>{campo.key}</Text>
+                <Text style={styles.label}>{campo.label || campo.key}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder={campo.placeholder}
@@ -510,7 +621,7 @@ export default function AgregarAnimalScreen() {
                 style={styles.healthButton}
                 onPress={() => setModalTratamiento(true)}
               >
-                <Text style={styles.healthButtonText}>💊 Tratamientos</Text>
+                <Text style={styles.healthButtonText}>💊 Tratamientos Adicionales</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.healthButton}
@@ -527,9 +638,25 @@ export default function AgregarAnimalScreen() {
                 {vacunas.map((vacuna) => (
                   <View key={vacuna.id} style={styles.tag}>
                     <Text style={styles.tagText}>
-                      {vacuna.nombre} - {vacuna.fecha}
+                      {vacuna.nombre_vacuna} - {vacuna.fecha_aplicacion}
                     </Text>
                     <TouchableOpacity onPress={() => eliminarItem('vacuna', vacuna.id)}>
+                      <X color="#fff" size={16} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {desparasitaciones.length > 0 && (
+              <View style={styles.recordsContainer}>
+                <Text style={styles.recordsTitle}>Desparasitaciones:</Text>
+                {desparasitaciones.map((desparasitacion) => (
+                  <View key={desparasitacion.id} style={styles.tag}>
+                    <Text style={styles.tagText}>
+                      {desparasitacion.nombre_producto} - {desparasitacion.fecha_aplicacion}
+                    </Text>
+                    <TouchableOpacity onPress={() => eliminarItem('desparasitacion', desparasitacion.id)}>
                       <X color="#fff" size={16} />
                     </TouchableOpacity>
                   </View>
@@ -637,22 +764,12 @@ export default function AgregarAnimalScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Origen</Text>
+              <Text style={styles.label}>Lugar de nacimiento</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: Compra, Nacimiento en finca"
-                value={form['Origen'] || ''}
-                onChangeText={(text) => handleChange('Origen', text)}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Destino previsto</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: Venta, Reproducción, Producción"
-                value={form['Destino previsto'] || ''}
-                onChangeText={(text) => handleChange('Destino previsto', text)}
+                placeholder="Ej: Finca propia, Compra externa"
+                value={form['Lugar de nacimiento'] || ''}
+                onChangeText={(text) => handleChange('Lugar de nacimiento', text)}
               />
             </View>
           </View>
@@ -673,7 +790,7 @@ export default function AgregarAnimalScreen() {
       {/* Modal para agregar peso */}
       <Modal visible={modalPeso} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, styles.largeModal]}>
             <Text style={styles.modalTitle}>Registrar Peso</Text>
             <TextInput 
               style={styles.input} 
@@ -710,26 +827,120 @@ export default function AgregarAnimalScreen() {
       {/* Modal para agregar vacuna */}
       <Modal visible={modalVacuna} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView style={[styles.modalContent, styles.largeModal]}>
             <Text style={styles.modalTitle}>Agregar Vacuna</Text>
+            
+            <Text style={styles.inputLabel}>Nombre de la vacuna *</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Nombre de la vacuna" 
-              value={tempVacuna.nombre} 
-              onChangeText={(t) => setTempVacuna({ ...tempVacuna, nombre: t })} 
+              placeholder="Ej: Vacuna contra aftosa" 
+              value={tempVacuna.nombre_vacuna} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, nombre_vacuna: t })} 
             />
+            
+            <Text style={styles.inputLabel}>Fecha de aplicación *</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Fecha (YYYY-MM-DD)" 
-              value={tempVacuna.fecha} 
-              onChangeText={(t) => setTempVacuna({ ...tempVacuna, fecha: t })} 
+              placeholder="YYYY-MM-DD" 
+              value={tempVacuna.fecha_aplicacion} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, fecha_aplicacion: t })} 
             />
+            
+            <Text style={styles.inputLabel}>Dosis</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Dosis (opcional)" 
+              placeholder="Ej: 2 ml" 
               value={tempVacuna.dosis} 
               onChangeText={(t) => setTempVacuna({ ...tempVacuna, dosis: t })} 
             />
+            
+            <Text style={styles.inputLabel}>Vía de administración</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesViaAdministracion}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione vía"
+              value={tempVacuna.via_administracion}
+              onChange={(item) => setTempVacuna({ ...tempVacuna, via_administracion: item.value })}
+            />
+            
+            <Text style={styles.inputLabel}>Próxima dosis</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempVacuna.proxima_dosis} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, proxima_dosis: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Fabricante</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nombre del fabricante" 
+              value={tempVacuna.vacuna_fabricante} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, vacuna_fabricante: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Fecha vencimiento lote</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempVacuna.fecha_vencimiento_lote} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, fecha_vencimiento_lote: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Administrado por</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nombre del administrador" 
+              value={tempVacuna.administrado_por} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, administrado_por: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Lugar de aplicación</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Cuello, Muslo" 
+              value={tempVacuna.lugar_aplicacion} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, lugar_aplicacion: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Período retiro leche (días)</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 3" 
+              value={tempVacuna.periodo_retiro_leche_dias} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, periodo_retiro_leche_dias: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Período retiro carne (días)</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 21" 
+              value={tempVacuna.periodo_retiro_carne_dias} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, periodo_retiro_carne_dias: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Costo</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 15000" 
+              value={tempVacuna.costo} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, costo: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Observaciones</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Observaciones adicionales" 
+              value={tempVacuna.observaciones} 
+              onChangeText={(t) => setTempVacuna({ ...tempVacuna, observaciones: t })} 
+              multiline
+            />
+            
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVacuna(false)}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -738,33 +949,128 @@ export default function AgregarAnimalScreen() {
                 <Text style={styles.confirmButtonText}>Agregar</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
       {/* Modal para agregar desparasitación */}
       <Modal visible={modalDesparasitacion} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView style={[styles.modalContent, styles.largeModal]}>
             <Text style={styles.modalTitle}>Agregar Desparasitación</Text>
+            
+            <Text style={styles.inputLabel}>Nombre del producto *</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Nombre del producto" 
-              value={tempDesparasitacion.nombre} 
-              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, nombre: t })} 
+              placeholder="Ej: Ivermectina" 
+              value={tempDesparasitacion.nombre_producto} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, nombre_producto: t })} 
             />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Fecha (YYYY-MM-DD)" 
-              value={tempDesparasitacion.fecha} 
-              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, fecha: t })} 
+            
+            <Text style={styles.inputLabel}>Tipo de parásito</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesTipoParasito}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione tipo"
+              value={tempDesparasitacion.tipo_parasito}
+              onChange={(item) => setTempDesparasitacion({ ...tempDesparasitacion, tipo_parasito: item.value })}
             />
+            
+            <Text style={styles.inputLabel}>Fecha de aplicación *</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Dosis (opcional)" 
+              placeholder="YYYY-MM-DD" 
+              value={tempDesparasitacion.fecha_aplicacion} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, fecha_aplicacion: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Dosis</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 1 ml por 50 kg" 
               value={tempDesparasitacion.dosis} 
               onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, dosis: t })} 
             />
+            
+            <Text style={styles.inputLabel}>Vía de administración</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesViaAdministracion}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione vía"
+              value={tempDesparasitacion.via_administracion}
+              onChange={(item) => setTempDesparasitacion({ ...tempDesparasitacion, via_administracion: item.value })}
+            />
+            
+            <Text style={styles.inputLabel}>Próxima aplicación</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempDesparasitacion.proxima_aplicacion} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, proxima_aplicacion: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Ingrediente activo</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Ivermectina 1%" 
+              value={tempDesparasitacion.ingrediente_activo} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, ingrediente_activo: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Administrado por</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nombre del administrador" 
+              value={tempDesparasitacion.administrado_por} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, administrado_por: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Lugar de aplicación</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Lomo, Cuello" 
+              value={tempDesparasitacion.lugar_aplicacion} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, lugar_aplicacion: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Fecha verificación eficacia</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempDesparasitacion.eficacia_verificacion_fecha} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, eficacia_verificacion_fecha: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Resistencia sospechada</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Notas sobre resistencia" 
+              value={tempDesparasitacion.resistencia_sospechada} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, resistencia_sospechada: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Costo</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 8000" 
+              value={tempDesparasitacion.costo} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, costo: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Observaciones</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Observaciones adicionales" 
+              value={tempDesparasitacion.observaciones} 
+              onChangeText={(t) => setTempDesparasitacion({ ...tempDesparasitacion, observaciones: t })} 
+              multiline
+            />
+            
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalDesparasitacion(false)}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -773,11 +1079,223 @@ export default function AgregarAnimalScreen() {
                 <Text style={styles.confirmButtonText}>Agregar</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
-      {/* Agrega los otros modales de manera similar para tratamientos y enfermedades */}
+      {/* Modal para agregar tratamiento */}
+      <Modal visible={modalTratamiento} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <ScrollView style={[styles.modalContent, styles.largeModal]}>
+            <Text style={styles.modalTitle}>Agregar Tratamiento Adicional</Text>
+            
+            <Text style={styles.inputLabel}>Nombre del tratamiento *</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Antibiótico para infección" 
+              value={tempTratamiento.nombre_tratamiento} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, nombre_tratamiento: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Diagnóstico / Motivo</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Infección respiratoria" 
+              value={tempTratamiento.diagnostico_motivo} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, diagnostico_motivo: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Fecha de inicio *</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempTratamiento.fecha_inicio} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, fecha_inicio: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Medicamento / Producto</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Penicilina" 
+              value={tempTratamiento.medicamento_producto} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, medicamento_producto: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Descripción del tratamiento</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Descripción detallada del tratamiento" 
+              value={tempTratamiento.descripcion_tratamiento} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, descripcion_tratamiento: t })} 
+              multiline
+            />
+            
+            <Text style={styles.inputLabel}>Vía de administración</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesViaAdministracion}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione vía"
+              value={tempTratamiento.via_administracion}
+              onChange={(item) => setTempTratamiento({ ...tempTratamiento, via_administracion: item.value })}
+            />
+            
+            <Text style={styles.inputLabel}>Duración (días)</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 7" 
+              value={tempTratamiento.duracion_dias} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, duracion_dias: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Fecha de fin</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempTratamiento.fecha_fin} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, fecha_fin: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Veterinario responsable</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nombre del veterinario" 
+              value={tempTratamiento.veterinario_responsable} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, veterinario_responsable: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Costo</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: 25000" 
+              value={tempTratamiento.costo} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, costo: t })} 
+              keyboardType="numeric"
+            />
+            
+            <Text style={styles.inputLabel}>Evolución / Observaciones</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Observaciones sobre la evolución" 
+              value={tempTratamiento.evolucion_observaciones} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, evolucion_observaciones: t })} 
+              multiline
+            />
+            
+            <Text style={styles.inputLabel}>Próxima revisión</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempTratamiento.proxima_revision_fecha} 
+              onChangeText={(t) => setTempTratamiento({ ...tempTratamiento, proxima_revision_fecha: t })} 
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalTratamiento(false)}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={agregarTratamiento}>
+                <Text style={styles.confirmButtonText}>Agregar</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Modal para agregar enfermedad */}
+      <Modal visible={modalEnfermedad} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <ScrollView style={[styles.modalContent, styles.largeModal]}>
+            <Text style={styles.modalTitle}>Agregar Enfermedad</Text>
+            
+            <Text style={styles.inputLabel}>Nombre de la enfermedad *</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Mastitis" 
+              value={tempEnfermedad.nombre_enfermedad} 
+              onChangeText={(t) => setTempEnfermedad({ ...tempEnfermedad, nombre_enfermedad: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Fecha de diagnóstico *</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempEnfermedad.fecha_diagnostico} 
+              onChangeText={(t) => setTempEnfermedad({ ...tempEnfermedad, fecha_diagnostico: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Estado actual</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesEstadoEnfermedad}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione estado"
+              value={tempEnfermedad.estado_actual}
+              onChange={(item) => setTempEnfermedad({ ...tempEnfermedad, estado_actual: item.value })}
+            />
+            
+            <Text style={styles.inputLabel}>Descripción del tratamiento aplicado</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Descripción del tratamiento recibido" 
+              value={tempEnfermedad.descripcion_tratamiento_aplicado} 
+              onChangeText={(t) => setTempEnfermedad({ ...tempEnfermedad, descripcion_tratamiento_aplicado: t })} 
+              multiline
+            />
+            
+            <Text style={styles.inputLabel}>Gravedad</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesGravedad}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione gravedad"
+              value={tempEnfermedad.gravedad}
+              onChange={(item) => setTempEnfermedad({ ...tempEnfermedad, gravedad: item.value })}
+            />
+            
+            <Text style={styles.inputLabel}>Fecha de recuperación</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={tempEnfermedad.fecha_recuperacion} 
+              onChangeText={(t) => setTempEnfermedad({ ...tempEnfermedad, fecha_recuperacion: t })} 
+            />
+            
+            <Text style={styles.inputLabel}>Observaciones</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              placeholder="Observaciones adicionales" 
+              value={tempEnfermedad.observaciones} 
+              onChangeText={(t) => setTempEnfermedad({ ...tempEnfermedad, observaciones: t })} 
+              multiline
+            />
+            
+            <Text style={styles.inputLabel}>Riesgo de recurrencia</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={opcionesRiesgoRecurrencia}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione riesgo"
+              value={tempEnfermedad.riesgo_recurrencia}
+              onChange={(item) => setTempEnfermedad({ ...tempEnfermedad, riesgo_recurrencia: item.value })}
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalEnfermedad(false)}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={agregarEnfermedad}>
+                <Text style={styles.confirmButtonText}>Agregar</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1054,6 +1572,11 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '80%',
+  },
+  largeModal: {
+    maxWidth: '90%',
+    maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 20,
@@ -1061,6 +1584,13 @@ const styles = StyleSheet.create({
     color: '#005246',
     marginBottom: 20,
     textAlign: 'center',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 6,
+    marginTop: 12,
   },
   modalButtons: {
     flexDirection: 'row',
