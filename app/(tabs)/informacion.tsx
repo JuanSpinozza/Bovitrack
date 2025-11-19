@@ -1,9 +1,9 @@
 import { eliminarAnimal, formatearAnimalParaUI, obtenerAnimales } from '@/services/animalesService';
 import { obtenerLotes, formatearLoteParaUI } from '@/services/ubicacionesService';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Plus } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -41,7 +41,7 @@ interface Lote {
   area?: string;
   imagen?: string;
   animales?: string[];
-  estado?: string; // Nuevo campo
+  estado?: string;
 }
 
 interface Guia {
@@ -61,13 +61,11 @@ export default function InformacionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // 🔹 Verificar autenticación y cargar datos
+  // 🔹 Verificar autenticación
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user) {
-        await cargarDatos();
-      } else {
+      if (!user) {
         setAnimales([]);
         setLotes([]);
       }
@@ -79,6 +77,8 @@ export default function InformacionScreen() {
 
   // 🔹 Cargar todos los datos
   const cargarDatos = async () => {
+    if (!user) return;
+    
     setRefreshing(true);
     try {
       await Promise.all([fetchAnimales(), fetchLotes()]);
@@ -88,12 +88,21 @@ export default function InformacionScreen() {
     setRefreshing(false);
   };
 
-  const handleVerDetallesAnimal = (animal: Animal) => {
-    router.push({
-      pathname: '/DetallesAnimal',
-      params: { animalId: animal.id }
-    });
-  };
+  // 🔥 NUEVO: Recargar datos cuando la pantalla recibe foco
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        cargarDatos();
+      }
+    }, [user])
+  );
+
+  // 🔥 NUEVO: Recargar datos cuando cambia la pestaña
+  useEffect(() => {
+    if (user && (selectedTab === 'Animales' || selectedTab === 'Lotes')) {
+      cargarDatos();
+    }
+  }, [selectedTab, user]);
 
   // 🔹 Cargar animales usando el servicio
   const fetchAnimales = async () => {
@@ -111,7 +120,6 @@ export default function InformacionScreen() {
   const fetchLotes = async () => {
     try {
       const data = await obtenerLotes();
-      // Formatear los lotes para incluir el estado
       const lotesFormateados = data.map(lote => ({
         ...lote,
         ...formatearLoteParaUI(lote)
@@ -121,6 +129,14 @@ export default function InformacionScreen() {
       console.error('Error al cargar lotes:', error);
       Alert.alert('Error', 'No se pudieron cargar los lotes');
     }
+  };
+
+  // 🔹 Manejar ver detalles de animal
+  const handleVerDetallesAnimal = (animal: Animal) => {
+    router.push({
+      pathname: '/DetallesAnimal',
+      params: { animalId: animal.id }
+    });
   };
 
   // 🔹 Manejar edición de animal
@@ -156,6 +172,7 @@ export default function InformacionScreen() {
     );
   };
 
+  // 🔹 Manejar ver detalles de lote
   const handleVerDetallesLote = (lote: Lote) => {
     router.push({
       pathname: '/DetallesLote',
@@ -172,6 +189,11 @@ export default function InformacionScreen() {
       pathname: '/EditarLote',
       params: { loteId: lote.id }
     });
+  };
+
+  // 🔹 Manejar agregar animal
+  const handleAgregarAnimal = () => {
+    router.push('/AgregarAnimal');
   };
 
   // 🔹 Manejar agregar lote
@@ -236,7 +258,7 @@ export default function InformacionScreen() {
           </Text>
           <TouchableOpacity 
             style={styles.emptyButton}
-            onPress={() => router.push('/AgregarAnimal')}
+            onPress={handleAgregarAnimal}
           >
             <Text style={styles.emptyButtonText}>Agregar Primer Animal</Text>
           </TouchableOpacity>
@@ -361,7 +383,7 @@ export default function InformacionScreen() {
                 return;
               }
               
-              if (selectedTab === 'Animales') router.push('/AgregarAnimal');
+              if (selectedTab === 'Animales') handleAgregarAnimal();
               else if (selectedTab === 'Lotes') handleAgregarLote();
               else if (selectedTab === 'Guías')
                 Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
@@ -489,7 +511,7 @@ const styles = StyleSheet.create({
   listContainer: { 
     padding: 16, 
     flex: 1,
-    minHeight: 400, // Asegura que siempre tenga altura mínima
+    minHeight: 400,
   },
   categorySection: {
     marginBottom: 24,
