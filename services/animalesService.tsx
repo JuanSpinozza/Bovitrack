@@ -1,18 +1,19 @@
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  getDoc,
-  query,
-  where,
-  orderBy 
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    updateDoc,
+    where
 } from "firebase/firestore";
 import { auth, db } from '../config/firebaseConfig';
 
 export interface Animal {
+  foto: null;
   id: string;
   // Campos básicos
   'ID o código': string;
@@ -114,6 +115,20 @@ export interface Animal {
   sexo: 'Macho' | 'Hembra';
   fechaRegistro: any;
   fechaActualizacion?: any;
+}
+
+export interface AnimalUI {
+  id: string;
+  nombre: string;
+  codigo: string;
+  edad: string;
+  estado: string;
+  peso?: string;
+  produccion?: string;
+  imagen: string;
+  tipo?: string;
+  sexo?: string;
+  raza?: string;
 }
 
 // URLs por defecto para las imágenes
@@ -373,7 +388,7 @@ export const calcularEdad = (fechaNacimiento: string): string => {
 };
 
 // 🔹 Función para formatear animal para mostrar en la UI
-export const formatearAnimalParaUI = (animal: any): Animal => {
+export const formatearAnimalParaUI = (animal: any): AnimalUI => {
   // Determinar el tipo basado en el propósito o sexo
   let tipo = 'Otros';
   if (animal.proposito) {
