@@ -6,10 +6,7 @@ import {
   Dimensions,
   Image,
   Modal,
-  RefreshControl // ✅ AGREGAR ESTA IMPORTACIÓN
-  ,
-
-
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +17,6 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { Dropdown } from 'react-native-element-dropdown';
 
-// Importar el servicio de animales
 import {
   Animal,
   AnimalUI,

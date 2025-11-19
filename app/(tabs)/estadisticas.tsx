@@ -12,6 +12,7 @@ import { LineChart } from "react-native-chart-kit";
 import { useFocusEffect } from "@react-navigation/native";
 
 import { obtenerAnimales, Animal } from "../../services/animalesService";
+import { obtenerLotes, Lote } from "../../services/ubicacionesService";
 import { calcularGDP } from "../../utils/CalculosGanaderia";
 
 const screenWidth = Dimensions.get("window").width;
@@ -35,6 +36,7 @@ const calcularDiasEntreFechas = (fecha1: string, fecha2: string): number => {
 
 export default function EstadisticasScreen() {
   const [animales, setAnimales] = useState<Animal[]>([]);
+  const [lotes, setLotes] = useState<Lote[]>([]);
   const [promedioPeso, setPromedioPeso] = useState(0);
   const [promedioCC, setPromedioCC] = useState(0);
   const [gdpGrafica, setGdpGrafica] = useState<number[]>([]);
@@ -56,6 +58,17 @@ export default function EstadisticasScreen() {
   const [totalTratamientos, setTotalTratamientos] = useState(0);
   const [animalesEnTratamiento, setAnimalesEnTratamiento] = useState(0);
 
+  // Estadísticas de lotes
+  const [totalLotes, setTotalLotes] = useState(0);
+  const [lotesActivos, setLotesActivos] = useState(0);
+  const [lotesDescanso, setLotesDescanso] = useState(0);
+  const [lotesCerrados, setLotesCerrados] = useState(0);
+  const [areaTotal, setAreaTotal] = useState(0);
+  const [areaProductiva, setAreaProductiva] = useState(0);
+  const [cargaAnimal, setCargaAnimal] = useState(0);
+  const [loteConMasAnimales, setLoteConMasAnimales] = useState({ nombre: '', cantidad: 0 });
+  const [distribucionLotes, setDistribucionLotes] = useState<number[]>([]);
+
   // Usar useFocusEffect para recargar datos cada vez que la pantalla recibe foco
   useFocusEffect(
     useCallback(() => {
@@ -65,15 +78,20 @@ export default function EstadisticasScreen() {
 
   const cargarDatos = async () => {
     try {
-      const data = await obtenerAnimales();
-      setAnimales(data);
+      const [dataAnimales, dataLotes] = await Promise.all([
+        obtenerAnimales(),
+        obtenerLotes()
+      ]);
+      
+      setAnimales(dataAnimales);
+      setLotes(dataLotes);
 
-      if (data.length === 0) return;
+      if (dataAnimales.length === 0 && dataLotes.length === 0) return;
 
       // -------------------------
       // 1. Promedio Peso
       // -------------------------
-      const pesos = data
+      const pesos = dataAnimales
         .map(a => {
           const ultimo = a.registrosPeso?.[a.registrosPeso.length - 1];
           const val = Number(ultimo?.peso);
@@ -89,7 +107,7 @@ export default function EstadisticasScreen() {
       // -------------------------
       // 2. Promedio Condición Corporal
       // -------------------------
-      const ccValidos = data.filter(a => a.condicionCorporal > 0);
+      const ccValidos = dataAnimales.filter(a => a.condicionCorporal > 0);
       const ccTotal = ccValidos.reduce((acc, a) => acc + (a.condicionCorporal || 0), 0);
       setPromedioCC(ccValidos.length > 0 ? ccTotal / ccValidos.length : 0);
 
@@ -97,7 +115,7 @@ export default function EstadisticasScreen() {
       // 3. Conteo de propósitos
       // -------------------------
       const counters = { Ceba: 0, Leche: 0, Cría: 0 };
-      data.forEach(a => {
+      dataAnimales.forEach(a => {
         if (a.proposito in counters) counters[a.proposito as keyof typeof counters]++;
       });
       setPropositos(counters);
@@ -111,7 +129,7 @@ export default function EstadisticasScreen() {
       // 5. Gráfica GDP
       // -------------------------
       const gdpList: number[] = [];
-      data.forEach(animal => {
+      dataAnimales.forEach(animal => {
         if (!animal.registrosPeso || animal.registrosPeso.length < 2) return;
 
         const r = animal.registrosPeso;
@@ -131,10 +149,10 @@ export default function EstadisticasScreen() {
       // -------------------------
       // 6. ESTADÍSTICAS REPRODUCTIVAS (Hembras)
       // -------------------------
-      const hembras = data.filter(a => a.sexo === 'Hembra');
+      const hembras = dataAnimales.filter(a => a.sexo === 'Hembra');
       setTotalHembrasReproduccion(hembras.length);
 
-      // Días Abiertos (Tiempo entre parto y concepción)
+      // Días Abiertos
       const diasAbiertosList: number[] = [];
       hembras.forEach(h => {
         const fechaParto = h['Fecha del último parto'];
@@ -142,7 +160,7 @@ export default function EstadisticasScreen() {
         
         if (fechaParto && fechaServicio) {
           const dias = calcularDiasEntreFechas(fechaParto, fechaServicio);
-          if (dias > 0 && dias < 500) diasAbiertosList.push(dias); // Filtrar valores razonables
+          if (dias > 0 && dias < 500) diasAbiertosList.push(dias);
         }
       });
       
@@ -152,10 +170,6 @@ export default function EstadisticasScreen() {
       setPromedioDiasAbiertos(promDiasAbiertos);
 
       // Intervalo entre Partos
-      // Nota: En tu estructura actual no hay registro de múltiples partos,
-      // solo "Fecha del último parto" y "Número de partos"
-      // Para calcular esto correctamente necesitarías un array de fechas de partos
-      // Por ahora, estimamos basado en edad y número de partos
       const intervalosPartos: number[] = [];
       hembras.forEach(h => {
         const numPartos = Number(h['Número de partos']) || 0;
@@ -190,16 +204,15 @@ export default function EstadisticasScreen() {
       let totalTrat = 0;
       let animalesConTrat = 0;
 
-      data.forEach(a => {
+      dataAnimales.forEach(a => {
         totalVac += a.vacunas?.length || 0;
         totalTrat += a.tratamientos?.length || 0;
         
-        // Verificar si tiene tratamientos activos
         if (a.tratamientos && a.tratamientos.length > 0) {
           const tieneActivo = a.tratamientos.some(t => {
             const fechaFin = new Date(t.fecha_fin);
             const hoy = new Date();
-            return fechaFin >= hoy; // Tratamiento aún activo
+            return fechaFin >= hoy;
           });
           if (tieneActivo) animalesConTrat++;
         }
@@ -208,6 +221,62 @@ export default function EstadisticasScreen() {
       setTotalVacunas(totalVac);
       setTotalTratamientos(totalTrat);
       setAnimalesEnTratamiento(animalesConTrat);
+
+      // -------------------------
+      // 8. ESTADÍSTICAS DE LOTES
+      // -------------------------
+      setTotalLotes(dataLotes.length);
+
+      // Conteo por estado
+      const activos = dataLotes.filter(l => l.estado === 'Activo').length;
+      const descanso = dataLotes.filter(l => l.estado === 'En descanso / recuperación').length;
+      const cerrados = dataLotes.filter(l => l.estado === 'Cerrado / Mantenimiento').length;
+      
+      setLotesActivos(activos);
+      setLotesDescanso(descanso);
+      setLotesCerrados(cerrados);
+
+      // Área total y productiva
+      const areaT = dataLotes.reduce((acc, l) => {
+        const area = parseFloat(l.area) || 0;
+        return acc + area;
+      }, 0);
+      setAreaTotal(areaT);
+
+      const areaProd = dataLotes.reduce((acc, l) => {
+        const area = parseFloat(l.areaProductiva || '0') || 0;
+        return acc + area;
+      }, 0);
+      setAreaProductiva(areaProd);
+
+      // Carga animal (animales/hectárea)
+      const areaActivaTotal = dataLotes
+        .filter(l => l.estado === 'Activo')
+        .reduce((acc, l) => acc + (parseFloat(l.area) || 0), 0);
+      
+      const animalesEnLotesActivos = dataLotes
+        .filter(l => l.estado === 'Activo')
+        .reduce((acc, l) => acc + (l.animales?.length || 0), 0);
+      
+      const carga = areaActivaTotal > 0 ? animalesEnLotesActivos / areaActivaTotal : 0;
+      setCargaAnimal(carga);
+
+      // Lote con más animales
+      let loteMax = { nombre: 'N/A', cantidad: 0 };
+      dataLotes.forEach(l => {
+        const cant = l.animales?.length || 0;
+        if (cant > loteMax.cantidad) {
+          loteMax = { nombre: l.nombre, cantidad: cant };
+        }
+      });
+      setLoteConMasAnimales(loteMax);
+
+      // Distribución de animales por lote
+      const distribucion = dataLotes
+        .filter(l => l.animales && l.animales.length > 0)
+        .map(l => l.animales.length)
+        .slice(0, 10);
+      setDistribucionLotes(limpiarNumeros(distribucion));
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
     }
@@ -224,7 +293,7 @@ export default function EstadisticasScreen() {
       </View>
 
       {/* ---------------- SECCIÓN: DATOS GENERALES ---------------- */}
-      <Text style={styles.sectionTitle}>Datos Generales</Text>
+      <Text style={styles.sectionTitle}>📊 Datos Generales</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -256,7 +325,7 @@ export default function EstadisticasScreen() {
       </ScrollView>
 
       {/* ---------------- SECCIÓN: REPRODUCCIÓN ---------------- */}
-      <Text style={styles.sectionTitle}>Reproducción (Hembras)</Text>
+      <Text style={styles.sectionTitle}>🐄 Reproducción (Hembras)</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -292,7 +361,7 @@ export default function EstadisticasScreen() {
       </ScrollView>
 
       {/* ---------------- SECCIÓN: SALUD ---------------- */}
-      <Text style={styles.sectionTitle}>Salud y Tratamientos</Text>
+      <Text style={styles.sectionTitle}>💉 Salud y Tratamientos</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -316,10 +385,79 @@ export default function EstadisticasScreen() {
         </View>
       </ScrollView>
 
+      {/* ---------------- SECCIÓN: LOTES Y PASTOREO ---------------- */}
+      <Text style={styles.sectionTitle}>🌾 Lotes y Pastoreo</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.statsScroll}
+        contentContainerStyle={styles.statsContainer}
+      >
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Total Lotes</Text>
+          <Text style={styles.statValue}>{totalLotes}</Text>
+          <Text style={styles.statSub}>
+            Activos: {lotesActivos} | Descanso: {lotesDescanso} | Cerrados: {lotesCerrados}
+          </Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Área Total</Text>
+          <Text style={styles.statValue}>{areaTotal.toFixed(2)} ha</Text>
+          <Text style={styles.statSub}>Área productiva: {areaProductiva.toFixed(2)} ha</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Carga Animal</Text>
+          <Text style={styles.statValue}>{cargaAnimal.toFixed(2)} UA/ha</Text>
+          <Text style={styles.statSub}>Animales por hectárea (lotes activos)</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Lote con Más Animales</Text>
+          <Text style={styles.statValue}>{loteConMasAnimales.cantidad}</Text>
+          <Text style={styles.statSub}>{loteConMasAnimales.nombre}</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Ocupación de Lotes</Text>
+          <Text style={styles.statValue}>
+            {totalLotes > 0 ? `${((lotesActivos / totalLotes) * 100).toFixed(1)}%` : '0%'}
+          </Text>
+          <Text style={styles.statSub}>Lotes activos vs. totales</Text>
+        </View>
+      </ScrollView>
+
+      {/* ---------------- GRÁFICA DISTRIBUCIÓN DE ANIMALES POR LOTE ---------------- */}
+      {distribucionLotes.length >= 2 ? (
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>🌾 Distribución de Animales por Lote</Text>
+          <LineChart
+            data={{
+              labels: distribucionLotes.map((_, i) => `L${i + 1}`),
+              datasets: [{ 
+                data: distribucionLotes,
+                color: () => "#005246" 
+              }],
+            }}
+            width={screenWidth - 50}
+            height={200}
+            yAxisSuffix=" animales"
+            chartConfig={chartConfig}
+            bezier
+          />
+        </View>
+      ) : (
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>🌾 Distribución de Animales por Lote</Text>
+          <Text style={styles.noDataText}>No hay suficientes lotes con animales para mostrar</Text>
+        </View>
+      )}
+
       {/* ---------------- GRÁFICA PESOS ---------------- */}
       {pesosGrafica.length >= 2 ? (
         <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Último Peso de Cada Animal</Text>
+          <Text style={styles.chartTitle}>📈 Último Peso de Cada Animal</Text>
           <LineChart
             data={{
               labels: pesosGrafica.map((_, i) => (i + 1).toString()),
@@ -337,7 +475,7 @@ export default function EstadisticasScreen() {
         </View>
       ) : (
         <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Último Peso de Cada Animal</Text>
+          <Text style={styles.chartTitle}>📈 Último Peso de Cada Animal</Text>
           <Text style={styles.noDataText}>No hay suficientes datos para mostrar</Text>
         </View>
       )}
@@ -345,7 +483,7 @@ export default function EstadisticasScreen() {
       {/* ---------------- GRÁFICA GDP ---------------- */}
       {gdpGrafica.length >= 2 ? (
         <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Ganancia Diaria de Peso (GDP)</Text>
+          <Text style={styles.chartTitle}>📊 Ganancia Diaria de Peso (GDP)</Text>
           <LineChart
             data={{
               labels: gdpGrafica.map((_, i) => (i + 1).toString()),
