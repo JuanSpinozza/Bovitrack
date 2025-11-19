@@ -124,16 +124,14 @@ export interface AnimalUI {
   edad: string;
   estado: string;
   peso?: string;
-  produccion?: string;
+  produccion?: string;  
+  reproduccion?: string; 
   imagen: string;
   tipo?: string;
   sexo?: string;
   raza?: string;
+  partos?: string; // ← AGREGAR ESTA PROPIEDAD
 }
-
-// URLs por defecto para las imágenes
-const IMAGEN_POR_DEFECTO_HEMBRA = 'https://www.gastroactitud.com/wp-content/uploads/2021/07/frisona.jpg';
-const IMAGEN_POR_DEFECTO_MACHO = 'https://sierradelguadarrama.com/wp-content/uploads/2023/05/visita-ganaderia-torra-de-lidia.jpg';
 
 // 🔹 Obtener todos los animales del usuario actual
 export const obtenerAnimales = async (): Promise<Animal[]> => {
@@ -399,20 +397,31 @@ export const formatearAnimalParaUI = (animal: any): AnimalUI => {
     tipo = 'Machos';
   }
 
+  // Calcular la edad
+  const edad = animal['Fecha de nacimiento'] 
+    ? calcularEdad(animal['Fecha de nacimiento']) 
+    : 'Edad no especificada';
+
+  // Obtener el estado reproductivo
+  const estadoReproductivo = animal['Estado reproductivo'] || undefined;
+  
+  // Obtener número de partos si existe
+  const partos = animal['Número de partos'] || undefined;
+
   return {
     id: animal.id,
     nombre: animal.Nombre || animal.nombre || 'Sin nombre',
     codigo: animal['ID o código'] || animal.codigo || 'N/A',
-    edad: animal['Fecha de nacimiento'] 
-      ? calcularEdad(animal['Fecha de nacimiento']) 
-      : 'Edad no especificada',
+    edad: edad,
     estado: animal['Estado de salud'] || animal.estado || 'Sano',
     peso: animal['Peso actual'] ? `${animal['Peso actual']} kg` : undefined,
-    produccion: animal['Estado reproductivo'] || undefined,
-    imagen: animal.foto || (animal.sexo === 'Hembra' ? '🐄' : '🐂'), // Usa Base64 si existe
+    produccion: animal['Estado productivo'] || undefined,
+    reproduccion: estadoReproductivo, // ← ESTA ES LA LÍNEA QUE FALTABA
+    imagen: animal.foto || (animal.sexo === 'Hembra' ? '🐄' : '🐂'),
     tipo: tipo,
     sexo: animal.sexo,
     raza: animal.Raza || animal.raza,
+    partos: partos, // ← AGREGAR NÚMERO DE PARTOS SI EXISTE
   };
 };
 

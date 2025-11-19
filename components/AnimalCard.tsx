@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { Edit3, Trash2, Heart, Scale, Calendar, Droplets, Baby, Target } from 'lucide-react-native';
+import { Edit3, Trash2, Calendar, Scale, Droplets, Baby } from 'lucide-react-native';
 
 interface Animal {
   id: string;
@@ -10,12 +10,12 @@ interface Animal {
   estado: string;
   peso?: string;
   produccion?: string;
-  reproduccion?: string,
+  reproduccion?: string;
   imagen: string;
   tipo?: string;
   sexo?: string;
   raza?: string;
-  partos? : string;
+  partos?: string; // ← AGREGAR ESTA PROPIEDAD
 }
 
 interface AnimalCardProps {
@@ -28,7 +28,7 @@ interface AnimalCardProps {
 export default function AnimalCard({ animal, showProduction, onEdit, onDelete }: AnimalCardProps) {
   const esImagenBase64 = animal.imagen?.startsWith('data:image');
   const emojiPorDefecto = animal.sexo === 'Hembra' ? '🐄' : '🐂';
-  
+  console.log(animal.reproduccion);
   // Colores según el estado de salud
   const getStatusColor = () => {
     switch (animal.estado?.toLowerCase()) {
@@ -45,24 +45,11 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
     return animal.sexo === 'Hembra' ? '♀' : '♂';
   };
 
-  // Función para determinar el color del estado reproductivo
-  const getReproductiveStatusColor = () => {
-    switch (animal.reproduccion?.toLowerCase()) {
-      case 'preñada':
-      case 'gestante': return '#10B981';
-      case 'vacía':
-      case 'vacía': return '#EF4444';
-      case 'en celo': return '#8B5CF6';
-      case 'servida': return '#F59E0B';
-      case 'lactante': return '#3B82F6';
-      default: return '#6B7280';
-    }
-  };
-
   return (
     <View style={styles.card}>
-      {/* Header con gradiente */}
+      {/* HEADER */}
       <View style={styles.cardHeader}>
+        {/* Imagen/Avatar */}
         <View style={styles.avatarContainer}>
           {esImagenBase64 ? (
             <Image 
@@ -72,37 +59,29 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
             />
           ) : (
             <View style={styles.emojiContainer}>
-              <Text style={styles.emoji}>
-                {animal.imagen || emojiPorDefecto}
-              </Text>
+              <Text style={styles.emoji}>{animal.imagen || emojiPorDefecto}</Text>
             </View>
           )}
+          
+          {/* Badge de estado de salud */}
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
             <Text style={styles.statusText}>{animal.estado}</Text>
           </View>
         </View>
 
+        {/* Información principal */}
         <View style={styles.headerInfo}>
-          <View style={styles.nameContainer}>
+          <View style={styles.nameRow}>
             <Text style={styles.name}>{animal.nombre}</Text>
             <View style={styles.sexoBadge}>
               <Text style={styles.sexoText}>{getSexIcon()}</Text>
             </View>
           </View>
           <Text style={styles.code}>ID: {animal.codigo}</Text>
-          {animal.raza && (
-            <Text style={styles.raza}>{animal.raza}</Text>
-          )}
-          
-          {/* Estado reproductivo */}
-          {animal.reproduccion && (
-            <View style={[styles.reproductiveStatus, { backgroundColor: getReproductiveStatusColor() }]}>
-              <Baby size={12} color="#FFFFFF" />
-              <Text style={styles.reproductiveStatusText}>{animal.reproduccion}</Text>
-            </View>
-          )}
+          {animal.raza && <Text style={styles.raza}>{animal.raza}</Text>}
         </View>
 
+        {/* Botones de acción */}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
             <Edit3 size={18} color="#005246" />
@@ -113,10 +92,9 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
         </View>
       </View>
       
-      {/* Línea divisoria */}
       <View style={styles.divider} />
 
-      {/* Información del animal */}
+      {/* BODY - Información con iconos */}
       <View style={styles.cardBody}>
         <View style={styles.infoGrid}>
           {/* Edad */}
@@ -143,20 +121,7 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
             </View>
           )}
 
-          {/* Estado productivo */}
-          {animal.produccion && (
-            <View style={styles.infoItem}>
-              <View style={styles.iconContainer}>
-                <Target size={16} color="#005246" />
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Productivo</Text>
-                <Text style={styles.infoValue}>{animal.produccion}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Producción (leche) */}
+          {/* Estado Productivo */}
           {showProduction && animal.produccion && (
             <View style={styles.infoItem}>
               <View style={styles.iconContainer}>
@@ -169,65 +134,38 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
             </View>
           )}
 
-          {/* Número de partos */}
-          {animal.partos && (
+          {/* Estado Reproductivo */}
+          {animal.reproduccion && (
             <View style={styles.infoItem}>
               <View style={styles.iconContainer}>
                 <Baby size={16} color="#005246" />
               </View>
               <View>
-                <Text style={styles.infoLabel}>Partos</Text>
-                <Text style={styles.infoValue}>{animal.partos}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Condición corporal */}
-          {animal.estado && (
-            <View style={styles.infoItem}>
-              <View style={styles.iconContainer}>
-                <Heart size={16} color="#005246" />
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Cond. Corporal</Text>
-                <Text style={styles.infoValue}>{animal.estado}/5</Text>
+                <Text style={styles.infoLabel}>Reproducción</Text>
+                <Text style={styles.infoValue}>{animal.reproduccion}</Text>
               </View>
             </View>
           )}
         </View>
       </View>
 
-      {/* Footer con detalles adicionales */}
+      {/* FOOTER - Solo tags básicos */}
       <View style={styles.cardFooter}>
         <View style={styles.footerTags}>
+          {/* Sexo */}
           {animal.sexo && (
             <View style={styles.tag}>
               <Text style={styles.tagText}>{animal.sexo}</Text>
             </View>
           )}
+
+          {/* Tipo/Propósito */}
           {animal.tipo && (
             <View style={[styles.tag, styles.typeTag]}>
               <Text style={styles.typeTagText}>{animal.tipo}</Text>
             </View>
           )}
-          {animal.proposito && (
-            <View style={[styles.tag, styles.purposeTag]}>
-              <Text style={styles.purposeTagText}>{animal.proposito}</Text>
-            </View>
-          )}
         </View>
-        
-        {/* Fechas reproductivas importantes */}
-        {(animal.fechaUltimoCelo || animal.fechaUltimoParto) && (
-          <View style={styles.datesContainer}>
-            {animal.fechaUltimoCelo && (
-              <Text style={styles.dateText}>Último celo: {animal.fechaUltimoCelo}</Text>
-            )}
-            {animal.fechaUltimoParto && (
-              <Text style={styles.dateText}>Último parto: {animal.fechaUltimoParto}</Text>
-            )}
-          </View>
-        )}
       </View>
     </View>
   );
@@ -295,26 +233,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  reproductiveStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 4,
-    gap: 4,
-  },
-  reproductiveStatusText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
   headerInfo: {
     flex: 1,
   },
-  nameContainer: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
@@ -407,7 +329,6 @@ const styles = StyleSheet.create({
   },
   cardFooter: {
     flexDirection: 'column',
-    gap: 12,
   },
   footerTags: {
     flexDirection: 'row',
@@ -423,9 +344,6 @@ const styles = StyleSheet.create({
   typeTag: {
     backgroundColor: '#005246',
   },
-  purposeTag: {
-    backgroundColor: '#7C3AED',
-  },
   tagText: {
     fontSize: 12,
     fontWeight: '600',
@@ -435,18 +353,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  purposeTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  datesContainer: {
-    gap: 4,
-  },
-  dateText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontStyle: 'italic',
   },
 });
