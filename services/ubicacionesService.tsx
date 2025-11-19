@@ -1,4 +1,3 @@
-// services/lotesService.ts
 import { 
   collection, 
   getDocs, 

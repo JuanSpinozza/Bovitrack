@@ -10,228 +10,117 @@ import {
   where,
   orderBy 
 } from "firebase/firestore";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
 import { auth, db } from '../config/firebaseConfig';
 
 export interface Animal {
   id: string;
+  // Campos básicos
   'ID o código': string;
   'Nombre': string;
-  'Número de arete': string;
-  'Tipo de animal': string;
   'Raza': string;
-  'Color o señas particulares': string;
+  'Características del animal': string;
   'Fecha de nacimiento': string;
-  'Origen': string;
+  'Lugar de nacimiento': string;
   'Peso actual': string;
   'Fecha del último pesaje': string;
   'Estado de salud': string;
   'Lote o potrero actual': string;
   'Propietario o encargado': string;
   'Fecha de ingreso al hato': string;
-  'Destino previsto': string;
+  
+  // Campos específicos por sexo
   'Estado reproductivo'?: string;
   'Fecha del último celo'?: string;
   'Fecha de servicio o inseminación'?: string;
   'ID del toro utilizado'?: string;
   'Número de partos'?: string;
   'Fecha del último parto'?: string;
-  sexo: 'Macho' | 'Hembra';
-  foto?: string; // Ahora será Base64 o URL
-  fotoBase64?: string; // Nuevo campo para Base64
-  fechaRegistro: any;
-  vacunas?: any[];
-  desparasitaciones?: any[];
-  tratamientos?: any[];
-  enfermedades?: any[];
-  registrosPeso?: RegistroPeso[];
-  condicionCorporal?: number;
-  proposito?: string;
-}
-
-export interface RegistroPeso {
-  id?: string;
-  fecha: string;
-  peso: string;
-  observaciones?: string;
-}
-
-// ✅ CLAVES PARA ASYNC STORAGE
-const ANIMAL_IMAGES_KEY = 'animal_images';
-const getAnimalImageKey = (animalId: string) => `animal_image_${animalId}`;
-
-// ✅ CONVERTIR IMAGEN A BASE64
-const convertirImagenABase64 = async (uri: string): Promise<string> => {
-  try {
-    console.log('🔄 Convirtiendo imagen a Base64...');
-    
-    // Si ya es Base64, retornar directamente
-    if (uri.startsWith('data:image')) {
-      console.log('✅ Ya es Base64');
-      return uri;
-    }
-
-    // Leer archivo y convertir a Base64
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    // Determinar el tipo MIME
-    const extension = uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const mimeType = `image/${extension === 'png' ? 'png' : 'jpeg'}`;
-
-    const base64Data = `data:${mimeType};base64,${base64}`;
-    console.log('✅ Imagen convertida a Base64');
-    
-    return base64Data;
-  } catch (error) {
-    console.error('❌ Error al convertir imagen a Base64:', error);
-    throw new Error('No se pudo procesar la imagen');
-  }
-};
-
-// ✅ GUARDAR IMAGEN EN ASYNC STORAGE
-const guardarImagenEnStorage = async (animalId: string, base64Data: string): Promise<void> => {
-  try {
-    const imageKey = getAnimalImageKey(animalId);
-    
-    // Guardar individualmente
-    await AsyncStorage.setItem(imageKey, base64Data);
-    
-    // Actualizar el índice de imágenes
-    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
-    const imagesIndex = existingImages ? JSON.parse(existingImages) : [];
-    
-    if (!imagesIndex.includes(animalId)) {
-      imagesIndex.push(animalId);
-      await AsyncStorage.setItem(ANIMAL_IMAGES_KEY, JSON.stringify(imagesIndex));
-    }
-    
-    console.log('✅ Imagen guardada en AsyncStorage');
-  } catch (error) {
-    console.error('❌ Error al guardar imagen en AsyncStorage:', error);
-    throw error;
-  }
-};
-
-// ✅ OBTENER IMAGEN DESDE ASYNC STORAGE
-export const obtenerImagenDesdeStorage = async (animalId: string): Promise<string | null> => {
-  try {
-    const imageKey = getAnimalImageKey(animalId);
-    const base64Data = await AsyncStorage.getItem(imageKey);
-    
-    if (base64Data) {
-      console.log('✅ Imagen recuperada de AsyncStorage');
-      return base64Data;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('❌ Error al obtener imagen desde AsyncStorage:', error);
-    return null;
-  }
-};
-
-// ✅ ELIMINAR IMAGEN DE ASYNC STORAGE
-const eliminarImagenDeStorage = async (animalId: string): Promise<void> => {
-  try {
-    const imageKey = getAnimalImageKey(animalId);
-    
-    // Eliminar imagen individual
-    await AsyncStorage.removeItem(imageKey);
-    
-    // Actualizar índice
-    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
-    if (existingImages) {
-      const imagesIndex = JSON.parse(existingImages);
-      const updatedIndex = imagesIndex.filter((id: string) => id !== animalId);
-      await AsyncStorage.setItem(ANIMAL_IMAGES_KEY, JSON.stringify(updatedIndex));
-    }
-    
-    console.log('✅ Imagen eliminada de AsyncStorage');
-  } catch (error) {
-    console.error('❌ Error al eliminar imagen de AsyncStorage:', error);
-  }
-};
-
-// ✅ LIMPIAR IMÁGENES HUÉRFANAS
-export const limpiarImagenesHuerfanasStorage = async (animalesExistentes: string[]): Promise<void> => {
-  try {
-    const existingImages = await AsyncStorage.getItem(ANIMAL_IMAGES_KEY);
-    if (!existingImages) return;
-
-    const imagesIndex = JSON.parse(existingImages);
-    const animalesSet = new Set(animalesExistentes);
-    
-    let eliminadas = 0;
-    for (const animalId of imagesIndex) {
-      if (!animalesSet.has(animalId)) {
-        await eliminarImagenDeStorage(animalId);
-        eliminadas++;
-      }
-    }
-    
-    console.log(`✅ ${eliminadas} imágenes huérfanas eliminadas`);
-  } catch (error) {
-    console.error('❌ Error limpiando imágenes huérfanas:', error);
-  }
-};
-
-// ✅ PROCESAR Y GUARDAR IMAGEN
-const procesarYGuardarImagen = async (uri: string, animalId: string): Promise<string> => {
-  try {
-    if (!uri || uri.trim() === '') {
-      return '';
-    }
-
-    // Si ya es una URL de Firebase o externa, mantenerla
-    if (uri.startsWith('http') && !uri.startsWith('http://localhost')) {
-      console.log('🌐 URL externa, se mantiene como está');
-      return uri;
-    }
-
-    // Si es file:// o asset://, convertir a Base64 y guardar
-    if (uri.startsWith('file://') || uri.startsWith('asset://') || uri.startsWith('data:image')) {
-      console.log('🖼️ Procesando imagen local...');
-      const base64Data = await convertirImagenABase64(uri);
-      await guardarImagenEnStorage(animalId, base64Data);
-      return `storage://${animalId}`; // Marcador para indicar que está en storage
-    }
-
-    // Si ya es un marcador de storage, mantenerlo
-    if (uri.startsWith('storage://')) {
-      return uri;
-    }
-
-    console.log('⚠️ Tipo de imagen no reconocido, se guarda como texto');
-    return uri;
-  } catch (error) {
-    console.error('❌ Error al procesar imagen:', error);
-    return ''; // En caso de error, retornar vacío
-  }
-};
-
-// ✅ OBTENER URL DE IMAGEN PARA MOSTRAR
-export const obtenerUrlImagen = async (foto: string | undefined): Promise<string> => {
-  if (!foto) return '';
   
-  try {
-    // Si es un marcador de storage, obtener Base64
-    if (foto.startsWith('storage://')) {
-      const animalId = foto.replace('storage://', '');
-      const base64Data = await obtenerImagenDesdeStorage(animalId);
-      return base64Data || '';
-    }
-    
-    // Si ya es Base64 o URL externa, retornar directamente
-    return foto;
-  } catch (error) {
-    console.error('❌ Error al obtener URL de imagen:', error);
-    return '';
-  }
-};
+  // Nuevos campos del formulario
+  'condicionCorporal': number;
+  'proposito': string;
+  
+  // Arrays para registros detallados
+  'vacunas': Array<{
+    id?: string;
+    nombre_vacuna: string;
+    fecha_aplicacion: string;
+    dosis: string;
+    via_administracion: string;
+    proxima_dosis: string;
+    vacuna_fabricante: string;
+    fecha_vencimiento_lote: string;
+    administrado_por: string;
+    lugar_aplicacion: string;
+    periodo_retiro_leche_dias: string;
+    periodo_retiro_carne_dias: string;
+    costo: string;
+    observaciones: string;
+  }>;
+  
+  'desparasitaciones': Array<{
+    id?: string;
+    nombre_producto: string;
+    tipo_parasito: string;
+    fecha_aplicacion: string;
+    dosis: string;
+    via_administracion: string;
+    proxima_aplicacion: string;
+    ingrediente_activo: string;
+    administrado_por: string;
+    lugar_aplicacion: string;
+    eficacia_verificacion_fecha: string;
+    resistencia_sospechada: string;
+    costo: string;
+    observaciones: string;
+  }>;
+  
+  'tratamientos': Array<{
+    id?: string;
+    nombre_tratamiento: string;
+    diagnostico_motivo: string;
+    fecha_inicio: string;
+    medicamento_producto: string;
+    descripcion_tratamiento: string;
+    via_administracion: string;
+    duracion_dias: string;
+    fecha_fin: string;
+    veterinario_responsable: string;
+    costo: string;
+    evolucion_observaciones: string;
+    proxima_revision_fecha: string;
+  }>;
+  
+  'enfermedades': Array<{
+    id?: string;
+    nombre_enfermedad: string;
+    fecha_diagnostico: string;
+    estado_actual: string;
+    descripcion_tratamiento_aplicado: string;
+    gravedad: string;
+    fecha_recuperacion: string;
+    observaciones: string;
+    riesgo_recurrencia: string;
+  }>;
+  
+  'registrosPeso': Array<{
+    id?: string;
+    fecha: string;
+    peso: string;
+    observaciones: string;
+  }>;
+  
+  // Metadatos
+  sexo: 'Macho' | 'Hembra';
+  fechaRegistro: any;
+  fechaActualizacion?: any;
+}
 
+// URLs por defecto para las imágenes
+const IMAGEN_POR_DEFECTO_HEMBRA = 'https://www.gastroactitud.com/wp-content/uploads/2021/07/frisona.jpg';
+const IMAGEN_POR_DEFECTO_MACHO = 'https://sierradelguadarrama.com/wp-content/uploads/2023/05/visita-ganaderia-torra-de-lidia.jpg';
+
+// 🔹 Obtener todos los animales del usuario actual
 export const obtenerAnimales = async (): Promise<Animal[]> => {
   try {
     const user = auth.currentUser;
@@ -250,11 +139,6 @@ export const obtenerAnimales = async (): Promise<Animal[]> => {
     } as Animal));
     
     console.log(`✅ ${data.length} animales cargados`);
-    
-    // Limpiar imágenes huérfanas periódicamente
-    const animalIds = data.map(animal => animal.id);
-    limpiarImagenesHuerfanasStorage(animalIds).catch(console.error);
-    
     return data;
   } catch (error) {
     console.error('❌ Error al obtener animales:', error);
@@ -262,6 +146,7 @@ export const obtenerAnimales = async (): Promise<Animal[]> => {
   }
 };
 
+// 🔹 Obtener un animal específico por ID
 export const obtenerAnimalPorId = async (id: string): Promise<Animal | null> => {
   try {
     const user = auth.currentUser;
@@ -286,68 +171,34 @@ export const obtenerAnimalPorId = async (id: string): Promise<Animal | null> => 
   }
 };
 
-// ✅ AGREGAR ANIMAL CON MANEJO DE IMÁGENES MEJORADO
-export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegistro'>): Promise<string> => {
+// 🔹 Agregar un nuevo animal
+export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegistro'>): Promise<Animal> => {
   try {
     const user = auth.currentUser;
     if (!user) {
       throw new Error('Usuario no autenticado');
     }
 
-    console.log('🆕 Creando animal para usuario:', user.uid);
-
-    // Procesar imagen si existe
-    let fotoProcesada = '';
-    if (animalData.foto && animalData.foto.trim() !== '') {
-      try {
-        // Usar ID temporal para procesar la imagen
-        const tempId = 'temp_' + Date.now();
-        fotoProcesada = await procesarYGuardarImagen(animalData.foto, tempId);
-        console.log('✅ Imagen procesada antes de crear animal');
-      } catch (fotoError) {
-        console.error('⚠️ Error al procesar imagen:', fotoError);
-        fotoProcesada = '';
-      }
-    }
-
-    // Crear documento en Firestore
-    const datosFirestore = {
+    const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
+    const docRef = await addDoc(animalesRef, {
       ...animalData,
-      foto: fotoProcesada,
+      fechaRegistro: new Date(),
+    });
+    
+    console.log('✅ Animal agregado con ID:', docRef.id);
+    
+    return {
+      id: docRef.id,
+      ...animalData,
       fechaRegistro: new Date(),
     };
-
-    const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
-    const docRef = await addDoc(animalesRef, datosFirestore);
-    const animalId = docRef.id;
-
-    console.log('✅ Animal creado en Firestore con ID:', animalId);
-
-    // Si hay imagen y se usó ID temporal, actualizar con ID real
-    if (fotoProcesada.startsWith('storage://temp_')) {
-      try {
-        // Reprocesar la imagen con el ID real
-        const nuevaFotoUrl = await procesarYGuardarImagen(animalData.foto, animalId);
-        await updateDoc(docRef, { foto: nuevaFotoUrl });
-        
-        // Eliminar la temporal
-        await eliminarImagenDeStorage('temp_' + Date.now());
-        
-        console.log('✅ Imagen actualizada con ID real');
-      } catch (updateError) {
-        console.error('⚠️ Error al actualizar imagen con ID real:', updateError);
-      }
-    }
-
-    console.log('🎉 Animal guardado completamente');
-    return animalId;
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al agregar animal:', error);
-    throw new Error(`No se pudo agregar el animal: ${error.message}`);
+    throw new Error('No se pudo agregar el animal');
   }
 };
 
-// ✅ ACTUALIZAR ANIMAL CON MANEJO DE IMÁGENES
+// 🔹 Actualizar un animal existente
 export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Animal, 'id' | 'fechaRegistro'>>): Promise<void> => {
   try {
     const user = auth.currentUser;
@@ -356,33 +207,6 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
     }
 
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
-    
-    // Procesar nueva imagen si se proporciona
-    if (animalData.foto !== undefined) {
-      try {
-        const animalActual = await obtenerAnimalPorId(id);
-        
-        // Si hay una nueva imagen, procesarla
-        if (animalData.foto && animalData.foto.trim() !== '') {
-          const nuevaFotoUrl = await procesarYGuardarImagen(animalData.foto, id);
-          animalData.foto = nuevaFotoUrl;
-          
-          // Eliminar imagen anterior si existe y es diferente
-          if (animalActual?.foto && 
-              animalActual.foto.startsWith('storage://') &&
-              animalActual.foto !== nuevaFotoUrl) {
-            await eliminarImagenDeStorage(id);
-          }
-        } else if (animalData.foto === '') {
-          // Si se elimina la imagen, borrar del storage
-          await eliminarImagenDeStorage(id);
-        }
-      } catch (fotoError) {
-        console.error('⚠️ Error al procesar imagen en actualización:', fotoError);
-        delete animalData.foto;
-      }
-    }
-
     await updateDoc(animalRef, {
       ...animalData,
       fechaActualizacion: new Date(),
@@ -395,7 +219,7 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
   }
 };
 
-// ✅ ELIMINAR ANIMAL CON LIMPIEZA DE IMAGEN
+// 🔹 Eliminar un animal
 export const eliminarAnimal = async (id: string): Promise<void> => {
   try {
     const user = auth.currentUser;
@@ -403,26 +227,23 @@ export const eliminarAnimal = async (id: string): Promise<void> => {
       throw new Error('Usuario no autenticado');
     }
 
-    // Eliminar imagen del storage
-    await eliminarImagenDeStorage(id);
-
-    // Eliminar documento de Firestore
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
     await deleteDoc(animalRef);
     
-    console.log(`✅ Animal ${id} eliminado completamente`);
+    console.log(`✅ Animal ${id} eliminado`);
   } catch (error) {
     console.error(`❌ Error al eliminar animal ${id}:`, error);
     throw new Error('No se pudo eliminar el animal');
   }
 };
 
-// El resto de las funciones permanecen igual...
+// 🔹 Buscar animales por criterios específicos
 export const buscarAnimales = async (criterios: {
-  tipo?: string;
   sexo?: string;
   estadoSalud?: string;
   lote?: string;
+  proposito?: string;
+  estadoReproductivo?: string;
 }): Promise<Animal[]> => {
   try {
     const user = auth.currentUser;
@@ -433,11 +254,8 @@ export const buscarAnimales = async (criterios: {
     const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
     let q = query(animalesRef);
     
+    // Aplicar filtros si existen
     const condiciones = [];
-    
-    if (criterios.tipo) {
-      condiciones.push(where('Tipo de animal', '==', criterios.tipo));
-    }
     
     if (criterios.sexo) {
       condiciones.push(where('sexo', '==', criterios.sexo));
@@ -450,7 +268,16 @@ export const buscarAnimales = async (criterios: {
     if (criterios.lote) {
       condiciones.push(where('Lote o potrero actual', '==', criterios.lote));
     }
+
+    if (criterios.proposito) {
+      condiciones.push(where('proposito', '==', criterios.proposito));
+    }
+
+    if (criterios.estadoReproductivo) {
+      condiciones.push(where('Estado reproductivo', '==', criterios.estadoReproductivo));
+    }
     
+    // Si hay condiciones, aplicarlas a la query
     if (condiciones.length > 0) {
       q = query(animalesRef, ...condiciones, orderBy('fechaRegistro', 'desc'));
     } else {
@@ -463,7 +290,7 @@ export const buscarAnimales = async (criterios: {
       ...doc.data()
     } as Animal));
     
-    console.log(`✅ ${data.length} animales encontrados`);
+    console.log(`✅ ${data.length} animales encontrados con los criterios`);
     return data;
   } catch (error) {
     console.error('❌ Error al buscar animales:', error);
@@ -471,12 +298,15 @@ export const buscarAnimales = async (criterios: {
   }
 };
 
+// 🔹 Obtener estadísticas de animales
 export const obtenerEstadisticasAnimales = async (): Promise<{
   total: number;
   machos: number;
   hembras: number;
-  porTipo: Record<string, number>;
   porEstadoSalud: Record<string, number>;
+  porProposito: Record<string, number>;
+  porCondicionCorporal: Record<string, number>;
+  porEstadoReproductivo: Record<string, number>;
 }> => {
   try {
     const animales = await obtenerAnimales();
@@ -485,18 +315,35 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
       total: animales.length,
       machos: animales.filter(a => a.sexo === 'Macho').length,
       hembras: animales.filter(a => a.sexo === 'Hembra').length,
-      porTipo: {} as Record<string, number>,
       porEstadoSalud: {} as Record<string, number>,
+      porProposito: {} as Record<string, number>,
+      porCondicionCorporal: {} as Record<string, number>,
+      porEstadoReproductivo: {} as Record<string, number>,
     };
     
-    animales.forEach(animal => {
-      const tipo = animal['Tipo de animal'] || 'No especificado';
-      estadisticas.porTipo[tipo] = (estadisticas.porTipo[tipo] || 0) + 1;
-    });
-    
+    // Contar por estado de salud
     animales.forEach(animal => {
       const estado = animal['Estado de salud'] || 'No especificado';
       estadisticas.porEstadoSalud[estado] = (estadisticas.porEstadoSalud[estado] || 0) + 1;
+    });
+
+    // Contar por propósito
+    animales.forEach(animal => {
+      const proposito = animal.proposito || 'No especificado';
+      estadisticas.porProposito[proposito] = (estadisticas.porProposito[proposito] || 0) + 1;
+    });
+
+    // Contar por condición corporal
+    animales.forEach(animal => {
+      const condicion = animal.condicionCorporal ? animal.condicionCorporal.toString() : 'No especificada';
+      estadisticas.porCondicionCorporal[condicion] = (estadisticas.porCondicionCorporal[condicion] || 0) + 1;
+    });
+
+    // Contar por estado reproductivo (solo hembras)
+    const hembras = animales.filter(a => a.sexo === 'Hembra');
+    hembras.forEach(animal => {
+      const estado = animal['Estado reproductivo'] || 'No especificado';
+      estadisticas.porEstadoReproductivo[estado] = (estadisticas.porEstadoReproductivo[estado] || 0) + 1;
     });
     
     return estadisticas;
@@ -506,10 +353,9 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
   }
 };
 
+// 🔹 Función para calcular la edad a partir de la fecha de nacimiento
 export const calcularEdad = (fechaNacimiento: string): string => {
   try {
-    if (!fechaNacimiento) return 'Desconocida';
-    
     const nacimiento = new Date(fechaNacimiento);
     const hoy = new Date();
     const diferencia = hoy.getTime() - nacimiento.getTime();
@@ -526,18 +372,153 @@ export const calcularEdad = (fechaNacimiento: string): string => {
   }
 };
 
-export const formatearAnimalParaUI = (animal: Animal) => {
+// 🔹 Función para formatear animal para mostrar en la UI
+export const formatearAnimalParaUI = (animal: any): Animal => {
+  // Determinar el tipo basado en el propósito o sexo
+  let tipo = 'Otros';
+  if (animal.proposito) {
+    tipo = animal.proposito;
+  } else if (animal.sexo === 'Hembra') {
+    tipo = 'Hembras';
+  } else if (animal.sexo === 'Macho') {
+    tipo = 'Machos';
+  }
+
   return {
     id: animal.id,
-    nombre: animal.Nombre || 'Sin nombre',
-    codigo: animal['ID o código'] || 'Sin código',
-    edad: calcularEdad(animal['Fecha de nacimiento'] || ''),
-    estado: animal['Estado de salud'] || 'Sin estado',
-    peso: animal['Peso actual'] || '',
-    imagen: animal.foto || (animal.sexo === 'Hembra' ? '🐄' : '🐂'),
-    tipo: animal['Tipo de animal'] || 'Otros',
+    nombre: animal.Nombre || animal.nombre || 'Sin nombre',
+    codigo: animal['ID o código'] || animal.codigo || 'N/A',
+    edad: animal['Fecha de nacimiento'] 
+      ? calcularEdad(animal['Fecha de nacimiento']) 
+      : 'Edad no especificada',
+    estado: animal['Estado de salud'] || animal.estado || 'Sano',
+    peso: animal['Peso actual'] ? `${animal['Peso actual']} kg` : undefined,
+    produccion: animal['Estado reproductivo'] || undefined,
+    imagen: animal.foto || (animal.sexo === 'Hembra' ? '🐄' : '🐂'), // Usa Base64 si existe
+    tipo: tipo,
     sexo: animal.sexo,
-    lote: animal['Lote o potrero actual'] || '',
-    raza: animal.Raza || '',
+    raza: animal.Raza || animal.raza,
   };
+};
+
+
+// 🔹 Función para obtener el último registro de peso
+export const obtenerUltimoPeso = (animal: Animal) => {
+  if (!animal.registrosPeso || animal.registrosPeso.length === 0) {
+    return null;
+  }
+  
+  // Ordenar registros por fecha (más reciente primero)
+  const registrosOrdenados = [...animal.registrosPeso].sort((a, b) => 
+    new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+  );
+  
+  return registrosOrdenados[0];
+};
+
+// 🔹 Función para obtener vacunas próximas a vencer
+export const obtenerVacunasProximasVencer = (animal: Animal) => {
+  if (!animal.vacunas || animal.vacunas.length === 0) {
+    return [];
+  }
+  
+  const hoy = new Date();
+  const proximasVencer = animal.vacunas.filter(vacuna => {
+    if (!vacuna.proxima_dosis) return false;
+    
+    const fechaProxima = new Date(vacuna.proxima_dosis);
+    const diferenciaDias = (fechaProxima.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24);
+    
+    // Considerar próxima a vencer si está dentro de los próximos 30 días
+    return diferenciaDias <= 30 && diferenciaDias >= 0;
+  });
+  
+  return proximasVencer;
+};
+
+// 🔹 Función para obtener tratamientos en curso
+export const obtenerTratamientosEnCurso = (animal: Animal) => {
+  if (!animal.tratamientos || animal.tratamientos.length === 0) {
+    return [];
+  }
+  
+  const hoy = new Date();
+  const tratamientosEnCurso = animal.tratamientos.filter(tratamiento => {
+    if (!tratamiento.fecha_inicio) return false;
+    
+    const fechaInicio = new Date(tratamiento.fecha_inicio);
+    const fechaFin = tratamiento.fecha_fin ? new Date(tratamiento.fecha_fin) : null;
+    
+    // Si tiene fecha de fin, verificar si está entre inicio y fin
+    if (fechaFin) {
+      return hoy >= fechaInicio && hoy <= fechaFin;
+    }
+    
+    // Si no tiene fecha de fin, considerar en curso si empezó recientemente (últimos 30 días)
+    const diferenciaDias = (hoy.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24);
+    return diferenciaDias <= 30;
+  });
+  
+  return tratamientosEnCurso;
+};
+
+// 🔹 Función para obtener enfermedades activas
+export const obtenerEnfermedadesActivas = (animal: Animal) => {
+  if (!animal.enfermedades || animal.enfermedades.length === 0) {
+    return [];
+  }
+  
+  const enfermedadesActivas = animal.enfermedades.filter(enfermedad => {
+    return enfermedad.estado_actual === 'Crónica' || enfermedad.estado_actual === 'Recurrente';
+  });
+  
+  return enfermedadesActivas;
+};
+
+// 🔹 Función para agregar un nuevo registro de peso
+export const agregarRegistroPeso = async (animalId: string, registroPeso: {
+  fecha: string;
+  peso: string;
+  observaciones: string;
+}): Promise<void> => {
+  try {
+    const animal = await obtenerAnimalPorId(animalId);
+    if (!animal) {
+      throw new Error('Animal no encontrado');
+    }
+
+    const nuevosRegistros = [
+      ...(animal.registrosPeso || []),
+      { ...registroPeso, id: Date.now().toString() }
+    ];
+
+    await actualizarAnimal(animalId, {
+      registrosPeso: nuevosRegistros,
+      'Peso actual': registroPeso.peso,
+      'Fecha del último pesaje': registroPeso.fecha
+    });
+  } catch (error) {
+    console.error('❌ Error al agregar registro de peso:', error);
+    throw new Error('No se pudo agregar el registro de peso');
+  }
+};
+
+// 🔹 Función para agregar una nueva vacuna
+export const agregarVacuna = async (animalId: string, vacuna: any): Promise<void> => {
+  try {
+    const animal = await obtenerAnimalPorId(animalId);
+    if (!animal) {
+      throw new Error('Animal no encontrado');
+    }
+
+    const nuevasVacunas = [
+      ...(animal.vacunas || []),
+      { ...vacuna, id: Date.now().toString() }
+    ];
+
+    await actualizarAnimal(animalId, { vacunas: nuevasVacunas });
+  } catch (error) {
+    console.error('❌ Error al agregar vacuna:', error);
+    throw new Error('No se pudo agregar la vacuna');
+  }
 };

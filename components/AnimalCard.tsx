@@ -1,7 +1,6 @@
-// components/AnimalCard.tsx
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Edit3, Trash2 } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { Edit3, Trash2, Heart, Scale, Calendar, Droplets } from 'lucide-react-native';
 
 interface Animal {
   id: string;
@@ -14,6 +13,7 @@ interface Animal {
   imagen: string;
   tipo?: string;
   sexo?: string;
+  raza?: string;
 }
 
 interface AnimalCardProps {
@@ -24,45 +24,143 @@ interface AnimalCardProps {
 }
 
 export default function AnimalCard({ animal, showProduction, onEdit, onDelete }: AnimalCardProps) {
+  const esImagenBase64 = animal.imagen?.startsWith('data:image');
+  const emojiPorDefecto = animal.sexo === 'Hembra' ? '🐄' : '🐂';
+  
+  // Colores según el estado de salud
+  const getStatusColor = () => {
+    switch (animal.estado?.toLowerCase()) {
+      case 'sano': return '#10B981';
+      case 'enfermo': return '#EF4444';
+      case 'en tratamiento': return '#F59E0B';
+      case 'observación': return '#8B5CF6';
+      default: return '#6B7280';
+    }
+  };
+
+  // Icono según el sexo
+  const getSexIcon = () => {
+    return animal.sexo === 'Hembra' ? '♀' : '♂';
+  };
+
   return (
     <View style={styles.card}>
+      {/* Header con gradiente */}
       <View style={styles.cardHeader}>
-        <Text style={styles.emoji}>{animal.imagen}</Text>
-        <View style={styles.headerInfo}>
-          <Text style={styles.name}>{animal.nombre}</Text>
-          <Text style={styles.code}>Código: {animal.codigo}</Text>
+        <View style={styles.avatarContainer}>
+          {esImagenBase64 ? (
+            <Image 
+              source={{ uri: animal.imagen }} 
+              style={styles.animalImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.emojiContainer}>
+              <Text style={styles.emoji}>
+                {animal.imagen || emojiPorDefecto}
+              </Text>
+            </View>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+            <Text style={styles.statusText}>{animal.estado}</Text>
+          </View>
         </View>
+
+        <View style={styles.headerInfo}>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{animal.nombre}</Text>
+            <View style={styles.sexoBadge}>
+              <Text style={styles.sexoText}>{getSexIcon()}</Text>
+            </View>
+          </View>
+          <Text style={styles.code}>ID: {animal.codigo}</Text>
+          {animal.raza && (
+            <Text style={styles.raza}>{animal.raza}</Text>
+          )}
+        </View>
+
         <View style={styles.actions}>
           <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
             <Edit3 size={18} color="#005246" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-            <Trash2 size={18} color="#e74c3c" />
+          <TouchableOpacity onPress={onDelete} style={[styles.actionButton, styles.deleteButton]}>
+            <Trash2 size={18} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </View>
       
+      {/* Línea divisoria */}
+      <View style={styles.divider} />
+
+      {/* Información del animal */}
       <View style={styles.cardBody}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Edad:</Text>
-          <Text style={styles.value}>{animal.edad}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Estado:</Text>
-          <Text style={[styles.value, styles.status]}>{animal.estado}</Text>
-        </View>
-        {animal.peso && (
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Peso:</Text>
-            <Text style={styles.value}>{animal.peso}</Text>
+        <View style={styles.infoGrid}>
+          {/* Edad */}
+          <View style={styles.infoItem}>
+            <View style={styles.iconContainer}>
+              <Calendar size={16} color="#005246" />
+            </View>
+            <View>
+              <Text style={styles.infoLabel}>Edad</Text>
+              <Text style={styles.infoValue}>{animal.edad}</Text>
+            </View>
           </View>
-        )}
-        {showProduction && animal.produccion && (
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Producción:</Text>
-            <Text style={styles.value}>{animal.produccion}</Text>
-          </View>
-        )}
+
+          {/* Peso */}
+          {animal.peso && (
+            <View style={styles.infoItem}>
+              <View style={styles.iconContainer}>
+                <Scale size={16} color="#005246" />
+              </View>
+              <View>
+                <Text style={styles.infoLabel}>Peso</Text>
+                <Text style={styles.infoValue}>{animal.peso}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Producción */}
+          {showProduction && animal.produccion && (
+            <View style={styles.infoItem}>
+              <View style={styles.iconContainer}>
+                <Droplets size={16} color="#005246" />
+              </View>
+              <View>
+                <Text style={styles.infoLabel}>Producción</Text>
+                <Text style={styles.infoValue}>{animal.produccion}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Estado reproductivo */}
+          {animal.produccion && !showProduction && (
+            <View style={styles.infoItem}>
+              <View style={styles.iconContainer}>
+                <Heart size={16} color="#005246" />
+              </View>
+              <View>
+                <Text style={styles.infoLabel}>Estado</Text>
+                <Text style={styles.infoValue}>{animal.produccion}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Footer con detalles adicionales */}
+      <View style={styles.cardFooter}>
+        <View style={styles.footerTags}>
+          {animal.sexo && (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{animal.sexo}</Text>
+            </View>
+          )}
+          {animal.tipo && (
+            <View style={[styles.tag, styles.typeTag]}>
+              <Text style={styles.typeTagText}>{animal.tipo}</Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -71,65 +169,185 @@ export default function AnimalCard({ animal, showProduction, onEdit, onDelete }:
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  animalImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#E8F0F2',
+  },
+  emojiContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#E8F0F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#E8F0F2',
+  },
+  emoji: {
+    fontSize: 32,
+  },
+  statusBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  emoji: {
-    fontSize: 32,
-    marginRight: 12,
+  statusText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   headerInfo: {
     flex: 1,
   },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   name: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginRight: 8,
+  },
+  sexoBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  sexoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#005246',
   },
   code: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  raza: {
+    fontSize: 14,
+    color: '#005246',
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
     gap: 8,
   },
   actionButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#f8f9fa',
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  deleteButton: {
+    backgroundColor: '#FEF2F2',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 16,
   },
   cardBody: {
-    gap: 6,
+    marginBottom: 16,
   },
-  infoRow: {
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: '45%',
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E8F0F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+  footerTags: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  value: {
-    fontSize: 14,
-    color: '#333',
+  tag: {
+    backgroundColor: '#E8F0F2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  typeTag: {
+    backgroundColor: '#005246',
+  },
+  tagText: {
+    fontSize: 12,
     fontWeight: '600',
+    color: '#005246',
   },
-  status: {
-    color: '#27ae60',
+  typeTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF', // Texto blanco para contraste con fondo verde oscuro
   },
 });

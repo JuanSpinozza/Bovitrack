@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { convertirImagenABase64 } from '../services/imagenesService';
 import { agregarAnimal } from '../services/animalesService';
 
 export default function AgregarAnimalScreen() {
@@ -167,39 +167,51 @@ export default function AgregarAnimalScreen() {
   };
 
   const handleGuardar = async () => {
-    if (!form['ID o código']?.trim() || !form['Nombre']?.trim()) {
-      Alert.alert('Error', 'El ID y el nombre son obligatorios');
-      return;
+  if (!form['ID o código']?.trim() || !form['Nombre']?.trim()) {
+    Alert.alert('Error', 'El ID y el nombre son obligatorios');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    let fotoBase64 = '';
+    
+    // Convertir imagen a Base64 si existe
+    if (foto) {
+      try {
+        fotoBase64 = await convertirImagenABase64(foto);
+        console.log('✅ Imagen convertida exitosamente');
+      } catch (error) {
+        console.error('❌ Error al convertir imagen:', error);
+        Alert.alert('Advertencia', 'La imagen no pudo ser procesada, pero el animal se guardará sin foto.');
+      }
     }
 
-    setLoading(true);
-    try {
-      const animalData = {
-        ...form,
-        sexo,
-        foto: foto || '',
-        vacunas,
-        desparasitaciones,
-        tratamientos,
-        enfermedades,
-        registrosPeso,
-        // fechaRegistro se agregará automáticamente en el servicio
-      };
+    const animalData = {
+      ...form,
+      sexo,
+      foto: fotoBase64, // Ahora es Base64 en lugar de URI
+      vacunas,
+      desparasitaciones,
+      tratamientos,
+      enfermedades,
+      registrosPeso,
+    };
 
-      await agregarAnimal(animalData);
+    await agregarAnimal(animalData);
 
-      Alert.alert(
-        '✅ Animal agregado', 
-        `${form.Nombre} registrado correctamente.`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } catch (error: any) {
-      console.error('❌ Error al guardar:', error);
-      Alert.alert('Error', error.message || 'No se pudo guardar el animal. Inténtalo de nuevo.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    Alert.alert(
+      '✅ Animal agregado', 
+      `${form.Nombre} registrado correctamente.`,
+      [{ text: 'OK', onPress: () => router.back() }]
+    );
+  } catch (error: any) {
+    console.error('❌ Error al guardar:', error);
+    Alert.alert('Error', error.message || 'No se pudo guardar el animal. Inténtalo de nuevo.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Funciones para agregar items a arrays
   const agregarVacuna = () => {
