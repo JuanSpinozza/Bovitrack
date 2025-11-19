@@ -12,7 +12,8 @@ export interface AnimalForm {
   'Lote o potrero actual': string;
   'Propietario o encargado': string;
   'Fecha de ingreso al hato': string;
-  'Estado reproductivo': string;
+    'Estado reproductivo': string;
+  'Estado productivo': string; // Nuevo campo
   'Fecha del último celo': string;
   'Fecha de servicio o inseminación': string;
   'ID del toro utilizado': string;

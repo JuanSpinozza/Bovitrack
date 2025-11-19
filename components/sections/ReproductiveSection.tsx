@@ -2,7 +2,10 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { AnimalForm } from '../../interfaces/animal.types';
-import { opcionesEstadoReproductivo } from '../..//constants/animal.constant';
+import { 
+  opcionesEstadoReproductivo, 
+  opcionesEstadoProductivo 
+} from '../../constants/animal.constant';
 
 interface ReproductiveSectionProps {
   form: AnimalForm;
@@ -13,6 +16,8 @@ export default function ReproductiveSection({ form, handleChange }: Reproductive
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Información Reproductiva</Text>
+      
+      {/* Estado Reproductivo */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Estado reproductivo</Text>
         <Dropdown
@@ -20,9 +25,23 @@ export default function ReproductiveSection({ form, handleChange }: Reproductive
           data={opcionesEstadoReproductivo}
           labelField="label"
           valueField="value"
-          placeholder="Seleccione estado"
+          placeholder="Seleccione estado reproductivo"
           value={form['Estado reproductivo']}
           onChange={(item) => handleChange('Estado reproductivo', item.value)}
+        />
+      </View>
+
+      {/* Estado Productivo / Lactación */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Estado productivo / lactación</Text>
+        <Dropdown
+          style={styles.dropdown}
+          data={opcionesEstadoProductivo}
+          labelField="label"
+          valueField="value"
+          placeholder="Seleccione estado productivo"
+          value={form['Estado productivo']}
+          onChange={(item) => handleChange('Estado productivo', item.value)}
         />
       </View>
       
