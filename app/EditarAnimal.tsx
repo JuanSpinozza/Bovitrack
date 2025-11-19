@@ -27,7 +27,7 @@ import {
   camposFechas,
   opcionesProposito,
   opcionesLote,
-} from '../constants/animal.constant.js';
+} from '../constants/animal.constant.ts';
 import { router } from 'expo-router';
 import { Plus, X } from 'lucide-react-native';
 
