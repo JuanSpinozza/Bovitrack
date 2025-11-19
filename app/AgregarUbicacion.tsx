@@ -32,6 +32,9 @@ export default function AgregarLoteScreen() {
   const [form, setForm] = useState({
     nombre: '',
     area: '',
+    areaProductiva: '',
+    tipoUso: '',
+    forrajePredominante: '',
   });
 
   const [imagen, setImagen] = useState<string | null>(null);
@@ -186,6 +189,63 @@ export default function AgregarLoteScreen() {
             </Text>
           )}
 
+          {/* 🔹 OPCIONES AVANZADAS (OPCIONALES) */}
+          <View style={styles.advancedSection}>
+            <Text style={styles.advancedTitle}>⚙️ Opciones avanzadas (opcionales)</Text>
+            
+            {/* Área productiva */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Área productiva (m²)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Área utilizada para producción"
+                placeholderTextColor="#9BA4B5"
+                keyboardType="numeric"
+                value={form.areaProductiva}
+                onChangeText={(text) => handleChange('areaProductiva', text)}
+              />
+            </View>
+
+            {/* Tipo de uso - Dropdown personalizado */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Tipo de uso</Text>
+              <View style={styles.dropdownContainer}>
+                {['Pastoreo', 'Descanso / recuperación', 'Corte (para silo o heno)', 'Mixto'].map((tipo) => (
+                  <TouchableOpacity
+                    key={tipo}
+                    style={[
+                      styles.dropdownOption,
+                      form.tipoUso === tipo && styles.dropdownOptionSelected
+                    ]}
+                    onPress={() => handleChange('tipoUso', tipo)}
+                  >
+                    <Text style={[
+                      styles.dropdownOptionText,
+                      form.tipoUso === tipo && styles.dropdownOptionTextSelected
+                    ]}>
+                      {tipo}
+                    </Text>
+                    {form.tipoUso === tipo && (
+                      <Text style={styles.selectedCheck}>✔</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Forraje predominante */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Forraje predominante</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Rye grass, Trébol blanco, Alfalfa..."
+                placeholderTextColor="#9BA4B5"
+                value={form.forrajePredominante}
+                onChangeText={(text) => handleChange('forrajePredominante', text)}
+              />
+            </View>
+          </View>
+
           {/* Guardar */}
           <TouchableOpacity style={styles.saveButton} onPress={handleGuardar}>
             <Text style={styles.saveButtonText}>Guardar Lote</Text>
@@ -247,8 +307,6 @@ export default function AgregarLoteScreen() {
     </SafeAreaView>
   );
 }
-
-// Los estilos se mantienen igual...
 
 const styles = StyleSheet.create({
   safeArea: { 
@@ -396,5 +454,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 20,
     fontStyle: 'italic',
+  },
+  // Nuevos estilos para opciones avanzadas
+  advancedSection: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  advancedTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#005246',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  dropdownContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    overflow: 'hidden',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F1F1',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#E8F0F2',
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  dropdownOptionTextSelected: {
+    color: '#005246',
+    fontWeight: '600',
   },
 });

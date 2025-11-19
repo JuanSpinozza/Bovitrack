@@ -1,14 +1,14 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, RefreshControl } from 'react-native';
+import { eliminarAnimal, formatearAnimalParaUI, obtenerAnimales } from '@/services/animalesService';
+import { obtenerLotes } from '@/services/ubicacionesService';
+import { useRouter } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Plus } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AnimalCard from '../../components/AnimalCard';
 import GuideCard from '../../components/GuideCard';
 import LocationCard from '../../components/LocationCard';
-import { useRouter } from 'expo-router';
-import { obtenerLotes } from '@/services/ubicacionesService';
-import { obtenerAnimales, formatearAnimalParaUI, eliminarAnimal } from '@/services/animalesService';
 import { auth } from '../../config/firebaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
 
 interface Animal {
   id: string;
@@ -273,7 +273,7 @@ export default function InformacionScreen() {
                 <Text style={styles.emptyText}>No hay lotes registrados.</Text>
                 <TouchableOpacity 
                   style={styles.emptyButton}
-                  onPress={() => router.push('/AgregarLote')}
+                  onPress={() => router.push('/AgregarUbicacion')}
                 >
                   <Text style={styles.emptyButtonText}>Agregar Primer Lote</Text>
                 </TouchableOpacity>
