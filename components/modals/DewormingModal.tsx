@@ -7,6 +7,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { Deworming } from '../../interfaces/animal.types';
@@ -29,8 +31,15 @@ export default function DewormingModal({
 }: DewormingModalProps) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <ScrollView style={[styles.modalContent, styles.largeModal]}>
+      <KeyboardAvoidingView 
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={[styles.modalContent, styles.largeModal]}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
           <Text style={styles.modalTitle}>Agregar Desparasitación</Text>
           
           <Text style={styles.inputLabel}>Nombre del producto *</Text>
@@ -154,7 +163,8 @@ export default function DewormingModal({
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -170,14 +180,16 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 24,
     width: '100%',
     maxWidth: 400,
-    maxHeight: '80%',
   },
   largeModal: {
     maxWidth: '90%',
-    maxHeight: '90%',
+    maxHeight: '90%', // Controla la altura máxima
+  },
+  scrollContent: {
+    padding: 24,
+    flexGrow: 1, // Importante para el ScrollView
   },
   modalTitle: {
     fontSize: 20,

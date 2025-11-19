@@ -138,4 +138,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  scrollViewContent: {
+    paddingBottom: 40, // Espacio extra para los botones
+  },
 });

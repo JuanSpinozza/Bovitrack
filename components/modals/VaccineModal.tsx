@@ -30,7 +30,7 @@ export default function VaccineModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <ScrollView style={[styles.modalContent, styles.largeModal]}>
+        <ScrollView style={[styles.modalContent, styles.largeModal]} contentContainerStyle={styles.scrollViewContent}>
           <Text style={styles.modalTitle}>Agregar Vacuna</Text>
           
           <Text style={styles.inputLabel}>Nombre de la vacuna *</Text>
@@ -246,5 +246,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  scrollViewContent: {
+    paddingBottom: 40, // Espacio extra para los botones
   },
 });
