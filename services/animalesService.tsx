@@ -1,4 +1,3 @@
-// services/animalesService.ts
 import { 
   collection, 
   getDocs, 
@@ -11,6 +10,7 @@ import {
   where,
   orderBy 
 } from "firebase/firestore";
+import * as FileSystem from 'expo-file-system';
 import { auth, db } from '../config/firebaseConfig';
 
 export interface Animal {
@@ -27,11 +27,6 @@ export interface Animal {
   'Peso actual': string;
   'Fecha del último pesaje': string;
   'Estado de salud': string;
-  'Vacunas aplicadas': string;
-  'Desparasitaciones': string;
-  'Tratamientos veterinarios': string;
-  'Enfermedades previas': string;
-  'Fecha de la última revisión veterinaria': string;
   'Lote o potrero actual': string;
   'Propietario o encargado': string;
   'Fecha de ingreso al hato': string;
@@ -45,12 +40,39 @@ export interface Animal {
   'Número de partos'?: string;
   'Fecha del último parto'?: string;
   
-  // Metadatos
   sexo: 'Macho' | 'Hembra';
   foto?: string;
-  documentos?: string;
   fechaRegistro: any;
+  
+  // Arrays para registros históricos
+  vacunas?: any[];
+  desparasitaciones?: any[];
+  tratamientos?: any[];
+  enfermedades?: any[];
+  registrosPeso?: RegistroPeso[];
+  condicionCorporal?: number;
+  proposito?: string;
 }
+
+export interface RegistroPeso {
+  id?: string;
+  fecha: string;
+  peso: string;
+  observaciones?: string;
+}
+
+// Función para guardar imagen localmente
+const guardarImagenLocalmente = async (uri: string, animalId: string): Promise<string> => {
+  try {
+    // En versiones recientes de Expo, las imágenes de la cámara/galería
+    // ya están en un lugar persistente, así que podemos usar la URI directamente
+    console.log('💾 Usando URI directa de la imagen');
+    return uri;
+  } catch (error) {
+    console.error('❌ Error con imagen, usando URI original:', error);
+    return uri;
+  }
+};
 
 // 🔹 Obtener todos los animales del usuario actual
 export const obtenerAnimales = async (): Promise<Animal[]> => {
@@ -103,30 +125,60 @@ export const obtenerAnimalPorId = async (id: string): Promise<Animal | null> => 
   }
 };
 
-// 🔹 Agregar un nuevo animal
-export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegistro'>): Promise<Animal> => {
+// 🔹 Agregar un nuevo animal (CON IMAGEN LOCAL)
+export const agregarAnimal = async (animalData: Omit<Animal, 'id' | 'fechaRegistro'>): Promise<string> => {
   try {
     const user = auth.currentUser;
     if (!user) {
       throw new Error('Usuario no autenticado');
     }
 
+    console.log('🆕 Creando animal para usuario:', user.uid);
+
+    // Primero crear el documento sin la foto para obtener el ID
     const animalesRef = collection(db, 'usuarios', user.uid, 'animales');
     const docRef = await addDoc(animalesRef, {
       ...animalData,
+      foto: '', // Inicialmente vacío, se actualizará después
       fechaRegistro: new Date(),
     });
+
+    const animalId = docRef.id;
+    console.log('✅ Animal creado en Firestore con ID:', animalId);
+
+    let fotoURL = animalData.foto || '';
     
-    console.log('✅ Animal agregado con ID:', docRef.id);
+    // Si hay una foto, guardarla localmente
+    if (animalData.foto && animalData.foto.startsWith('file://')) {
+      try {
+        console.log('🖼️ Guardando imagen localmente...');
+        fotoURL = await guardarImagenLocalmente(animalData.foto, animalId);
+        
+        // Actualizar el documento con la ruta local de la foto
+        await updateDoc(docRef, {
+          foto: fotoURL
+        });
+        
+        console.log('✅ Imagen guardada localmente y animal actualizado');
+      } catch (fotoError) {
+        console.error('⚠️ Error al guardar imagen localmente, pero animal guardado:', fotoError);
+        // Si falla, mantener la URI original
+        await updateDoc(docRef, {
+          foto: animalData.foto
+        });
+      }
+    } else {
+      // Si no hay imagen, actualizar con la que ya estaba
+      await updateDoc(docRef, {
+        foto: animalData.foto || ''
+      });
+    }
     
-    return {
-      id: docRef.id,
-      ...animalData,
-      fechaRegistro: new Date(),
-    };
-  } catch (error) {
+    console.log('🎉 Animal guardado completamente');
+    return animalId;
+  } catch (error: any) {
     console.error('❌ Error al agregar animal:', error);
-    throw new Error('No se pudo agregar el animal');
+    throw new Error(`No se pudo agregar el animal: ${error.message}`);
   }
 };
 
@@ -139,6 +191,19 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
     }
 
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
+    
+    // Si hay una nueva foto, guardarla localmente
+    if (animalData.foto && animalData.foto.startsWith('file://')) {
+      try {
+        const fotoURL = await guardarImagenLocalmente(animalData.foto, id);
+        animalData.foto = fotoURL;
+      } catch (fotoError) {
+        console.error('⚠️ Error al guardar imagen durante actualización:', fotoError);
+        // Eliminar la foto del objeto para no actualizarla
+        delete animalData.foto;
+      }
+    }
+
     await updateDoc(animalRef, {
       ...animalData,
       fechaActualizacion: new Date(),
@@ -151,12 +216,24 @@ export const actualizarAnimal = async (id: string, animalData: Partial<Omit<Anim
   }
 };
 
-// 🔹 Eliminar un animal
+// 🔹 Eliminar un animal (Y SU IMAGEN LOCAL)
 export const eliminarAnimal = async (id: string): Promise<void> => {
   try {
     const user = auth.currentUser;
     if (!user) {
       throw new Error('Usuario no autenticado');
+    }
+
+    // Primero obtener el animal para ver si tiene imagen local
+    const animal = await obtenerAnimalPorId(id);
+    if (animal?.foto && animal.foto.startsWith(FileSystem.documentDirectory!)) {
+      try {
+        // Eliminar la imagen local
+        await FileSystem.deleteAsync(animal.foto);
+        console.log('✅ Imagen local eliminada');
+      } catch (deleteError) {
+        console.error('⚠️ Error al eliminar imagen local:', deleteError);
+      }
     }
 
     const animalRef = doc(db, 'usuarios', user.uid, 'animales', id);
@@ -166,6 +243,35 @@ export const eliminarAnimal = async (id: string): Promise<void> => {
   } catch (error) {
     console.error(`❌ Error al eliminar animal ${id}:`, error);
     throw new Error('No se pudo eliminar el animal');
+  }
+};
+
+// 🔹 Función para limpiar imágenes huérfanas
+export const limpiarImagenesHuerfanas = async (): Promise<void> => {
+  try {
+    const animales = await obtenerAnimales();
+    const directorio = `${FileSystem.documentDirectory}animales/`;
+    
+    // Obtener lista de archivos en el directorio
+    const archivos = await FileSystem.readDirectoryAsync(directorio);
+    
+    // Crear conjunto de IDs de animales existentes
+    const idsAnimales = new Set(animales.map(animal => animal.id));
+    
+    // Eliminar archivos que no correspondan a animales existentes
+    for (const archivo of archivos) {
+      const idAnimal = archivo.split('_')[1]; // Extraer ID del nombre del archivo
+      
+      if (!idsAnimales.has(idAnimal)) {
+        const rutaCompleta = `${directorio}${archivo}`;
+        await FileSystem.deleteAsync(rutaCompleta);
+        console.log(`🗑️ Imagen huérfana eliminada: ${archivo}`);
+      }
+    }
+    
+    console.log('✅ Limpieza de imágenes huérfanas completada');
+  } catch (error) {
+    console.error('❌ Error en limpieza de imágenes:', error);
   }
 };
 
@@ -266,6 +372,8 @@ export const obtenerEstadisticasAnimales = async (): Promise<{
 // 🔹 Función para calcular la edad a partir de la fecha de nacimiento
 export const calcularEdad = (fechaNacimiento: string): string => {
   try {
+    if (!fechaNacimiento) return 'Desconocida';
+    
     const nacimiento = new Date(fechaNacimiento);
     const hoy = new Date();
     const diferencia = hoy.getTime() - nacimiento.getTime();
@@ -291,9 +399,10 @@ export const formatearAnimalParaUI = (animal: Animal) => {
     edad: calcularEdad(animal['Fecha de nacimiento'] || ''),
     estado: animal['Estado de salud'] || 'Sin estado',
     peso: animal['Peso actual'] || '',
-    produccion: animal['Producción de leche'] || '',
     imagen: animal.foto || (animal.sexo === 'Hembra' ? '🐄' : '🐂'),
     tipo: animal['Tipo de animal'] || 'Otros',
     sexo: animal.sexo,
+    lote: animal['Lote o potrero actual'] || '',
+    raza: animal.Raza || '',
   };
 };

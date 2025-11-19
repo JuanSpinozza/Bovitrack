@@ -9,6 +9,7 @@ import AnimalCard from '../../components/AnimalCard';
 import GuideCard from '../../components/GuideCard';
 import LocationCard from '../../components/LocationCard';
 import { auth } from '../../config/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface Animal {
   id: string;
@@ -21,6 +22,8 @@ interface Animal {
   imagen: string;
   tipo?: string;
   sexo?: string;
+  lote?: string;
+  raza?: string;
 }
 
 interface Lote {
@@ -46,6 +49,7 @@ export default function InformacionScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // 🔹 Verificar autenticación y cargar datos
   useEffect(() => {
@@ -132,19 +136,19 @@ export default function InformacionScreen() {
       id: 1,
       titulo: 'Mejoramiento de la calidad de los pastos',
       categoria: 'Alimentación',
-      imagen: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?w=100&h=100&fit=crop',
+      imagen: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?w=300&h=200&fit=crop',
     },
     {
       id: 2,
       titulo: 'Silo, alternativa eficaz en la alimentación de ganado',
       categoria: 'Alimentación',
-      imagen: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=100&h=100&fit=crop',
+      imagen: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=300&h=200&fit=crop',
     },
     {
       id: 3,
       titulo: 'Anabólicos y uso responsable en la ganadería',
       categoria: 'Alimentación',
-      imagen: 'https://images.unsplash.com/photo-1528627705177-7ac12352f6c3?w=100&h=100&fit=crop',
+      imagen: 'https://images.unsplash.com/photo-1528627705177-7ac12352f6c3?w=300&h=200&fit=crop',
     },
   ];
 
@@ -153,13 +157,13 @@ export default function InformacionScreen() {
       id: 4,
       titulo: '5 acciones para incrementar la producción de leche en el hato',
       categoria: 'Leche y cría',
-      imagen: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=100&h=100&fit=crop',
+      imagen: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=300&h=200&fit=crop',
     },
     {
       id: 5,
       titulo: 'Alimentación pre y post parto en vacas lecheras',
       categoria: 'Leche y cría',
-      imagen: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=100&h=100&fit=crop',
+      imagen: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=300&h=200&fit=crop',
     },
   ];
 
@@ -171,95 +175,109 @@ export default function InformacionScreen() {
     return acc;
   }, {});
 
+  // 🔸 Función para determinar si la imagen es un emoji o una URI
+  const esEmoji = (imagen: string) => {
+    return !imagen.startsWith('file://') && !imagen.startsWith('http');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Cargando información...</Text>
+        <Text style={styles.loadingText}>Cargando información...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* 🔹 Encabezado */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Información</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => {
-            if (!user) {
-              Alert.alert('Error', 'Debes estar autenticado para agregar contenido');
-              return;
-            }
-            
-            if (selectedTab === 'Animales') router.push('/AgregarAnimal');
-            else if (selectedTab === 'Lotes') router.push('/AgregarLote');
-            else if (selectedTab === 'Guías')
-              Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
-          }}>
-          <Plus color="#005246" size={28} />
-        </TouchableOpacity>
-      </View>
-
-      {/* 🔹 Pestañas */}
-      <View style={styles.tabsContainer}>
-        {['Animales', 'Lotes', 'Guías'].map((tab) => (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* 🔹 Encabezado */}
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <Text style={styles.headerTitle}>Información</Text>
           <TouchableOpacity
-            key={tab}
-            style={[styles.tab, selectedTab === tab && styles.tabActive]}
-            onPress={() => setSelectedTab(tab as typeof selectedTab)}>
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab && styles.tabTextActive,
-              ]}>
-              {tab}
-            </Text>
+            style={styles.addButton}
+            onPress={() => {
+              if (!user) {
+                Alert.alert('Error', 'Debes estar autenticado para agregar contenido');
+                return;
+              }
+              
+              if (selectedTab === 'Animales') router.push('/AgregarAnimal');
+              else if (selectedTab === 'Lotes') router.push('/AgregarLote');
+              else if (selectedTab === 'Guías')
+                Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
+            }}>
+            <Plus color="#005246" size={28} />
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      {/* 🔹 Contenido scrollable */}
-      <ScrollView 
-        style={styles.scrollContent} 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={cargarDatos}
-            colors={['#005246']}
-          />
-        }>
-        {selectedTab === 'Animales' && (
-          <View style={styles.listContainer}>
-            {Object.entries(animalesPorTipo).length > 0 ? (
-              Object.entries(animalesPorTipo).map(([tipo, lista]) => (
-                <View key={tipo}>
-                  <Text style={styles.categoryTitle}>{tipo}</Text>
-                  {lista.map((animal) => (
-                    <AnimalCard
-                      key={animal.id}
-                      animal={animal}
-                      showProduction={animal.sexo === 'Hembra'}
-                      onEdit={() => handleEditarAnimal(animal)}
-                      onDelete={() => handleEliminarAnimal(animal)}
-                    />
-                  ))}
+        {/* 🔹 Pestañas */}
+        <View style={styles.tabsContainer}>
+          {['Animales', 'Lotes', 'Guías'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, selectedTab === tab && styles.tabActive]}
+              onPress={() => setSelectedTab(tab as typeof selectedTab)}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === tab && styles.tabTextActive,
+                ]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 🔹 Contenido scrollable */}
+        <ScrollView 
+          style={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={cargarDatos}
+              colors={['#005246']}
+              tintColor="#005246"
+            />
+          }>
+          
+          {selectedTab === 'Animales' && (
+            <View style={styles.listContainer}>
+              {Object.entries(animalesPorTipo).length > 0 ? (
+                Object.entries(animalesPorTipo).map(([tipo, lista]) => (
+                  <View key={tipo} style={styles.categorySection}>
+                    <Text style={styles.categoryTitle}>{tipo} ({lista.length})</Text>
+                    <View style={styles.animalesGrid}>
+                      {lista.map((animal) => (
+                        <AnimalCard
+                          key={animal.id}
+                          animal={animal}
+                          showProduction={animal.sexo === 'Hembra'}
+                          onEdit={() => handleEditarAnimal(animal)}
+                          onDelete={() => handleEliminarAnimal(animal)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyEmoji}>🐄</Text>
+                  <Text style={styles.emptyTitle}>No hay animales registrados</Text>
+                  <Text style={styles.emptyText}>
+                    Comienza agregando tu primer animal a la granja
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.emptyButton}
+                    onPress={() => router.push('/AgregarAnimal')}
+                  >
+                    <Text style={styles.emptyButtonText}>Agregar Primer Animal</Text>
+                  </TouchableOpacity>
                 </View>
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No hay animales registrados.</Text>
-                <TouchableOpacity 
-                  style={styles.emptyButton}
-                  onPress={() => router.push('/AgregarAnimal')}
-                >
-                  <Text style={styles.emptyButtonText}>Agregar Primer Animal</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
+              )}
+            </View>
+          )}
 
         {selectedTab === 'Lotes' && (
           <View style={styles.listContainer}>
@@ -273,7 +291,7 @@ export default function InformacionScreen() {
                 <Text style={styles.emptyText}>No hay lotes registrados.</Text>
                 <TouchableOpacity 
                   style={styles.emptyButton}
-                  onPress={() => router.push('/AgregarUbicacion')}
+                  onPress={() => router.push('/AgregarLote')}
                 >
                   <Text style={styles.emptyButtonText}>Agregar Primer Lote</Text>
                 </TouchableOpacity>
@@ -282,72 +300,165 @@ export default function InformacionScreen() {
           </View>
         )}
 
-        {selectedTab === 'Guías' && (
-          <View style={styles.listContainer}>
-            <Text style={styles.categoryTitle}>Alimentación</Text>
-            {guiasAlimentacion.map((guia) => (
-              <GuideCard key={guia.id} guide={guia} />
-            ))}
-            <Text style={styles.categoryTitle}>Leche y cría</Text>
-            {guiasLecheria.map((guia) => (
-              <GuideCard key={guia.id} guide={guia} />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+          {selectedTab === 'Guías' && (
+            <View style={styles.listContainer}>
+              <View style={styles.guiaSection}>
+                <Text style={styles.categoryTitle}>📚 Guías de Alimentación</Text>
+                {guiasAlimentacion.map((guia) => (
+                  <GuideCard key={guia.id} guide={guia} />
+                ))}
+              </View>
+              
+              <View style={styles.guiaSection}>
+                <Text style={styles.categoryTitle}>🥛 Guías de Leche y Cría</Text>
+                {guiasLecheria.map((guia) => (
+                  <GuideCard key={guia.id} guide={guia} />
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8FAFC' 
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8FAFC',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748B',
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 15,
     backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#005246' },
-  addButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: '#005246' 
+  },
+  addButton: { 
+    width: 44, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: '#E8F0F2',
+    borderRadius: 22,
+  },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     paddingHorizontal: 20,
     paddingBottom: 15,
-    gap: 10,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E8F0F2' },
-  tabActive: { backgroundColor: '#005246' },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#005246' },
-  tabTextActive: { color: '#fff' },
-  scrollContent: { flex: 1 },
-  listContainer: { padding: 20, flex: 1 },
-  categoryTitle: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 15, marginTop: 10 },
+  tab: { 
+    paddingHorizontal: 20, 
+    paddingVertical: 10, 
+    borderRadius: 20, 
+    backgroundColor: '#F8FAFC' 
+  },
+  tabActive: { 
+    backgroundColor: '#005246',
+    shadowColor: '#005246',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#64748B' 
+  },
+  tabTextActive: { 
+    color: '#fff' 
+  },
+  scrollContent: { 
+    flex: 1 
+  },
+  listContainer: { 
+    padding: 16, 
+    flex: 1 
+  },
+  categorySection: {
+    marginBottom: 24,
+  },
+  guiaSection: {
+    marginBottom: 32,
+  },
+  categoryTitle: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    color: '#005246', 
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  animalesGrid: {
+    gap: 12,
+  },
+  lotesGrid: {
+    gap: 16,
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#005246',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: { 
     fontSize: 16, 
-    color: '#999', 
+    color: '#64748B', 
     textAlign: 'center', 
-    marginBottom: 20 
+    marginBottom: 32,
+    lineHeight: 22,
   },
   emptyButton: {
     backgroundColor: '#005246',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: '#005246',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptyButtonText: {
     color: '#fff',
