@@ -71,11 +71,6 @@ export default function ProfileScreen() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
-        <View style={styles.menuItem}>
-          <Text style={styles.menuText}>Notificaciones activas</Text>
-          <View style={styles.toggle} />
-        </View>
-
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuText}>Soporte</Text>
           <Text style={styles.arrow}>›</Text>
