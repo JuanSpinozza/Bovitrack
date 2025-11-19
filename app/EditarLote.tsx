@@ -12,17 +12,19 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { auth, db } from '../config/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { convertirImagenABase64 } from '../services/imagenesService';
+import { obtenerLotePorId } from '../services/ubicacionesService';
 import LoteForm, { LoteFormData } from '../components/LoteForm';
 import SeleccionarAnimalesModal from '../components/modals/SeleccionarAnimalesModal';
 
-export default function AgregarLoteScreen() {
+export default function EditarLoteScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { loteId } = useLocalSearchParams();
 
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -43,23 +45,58 @@ export default function AgregarLoteScreen() {
   const [animalesSeleccionados, setAnimalesSeleccionados] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Verificar autenticación y cargar animales del usuario
+  // Cargar datos del lote y animales
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
-        await cargarAnimalesDelUsuario(user.uid);
+        await Promise.all([
+          cargarLote(user.uid),
+          cargarAnimalesDelUsuario(user.uid)
+        ]);
       } else {
-        Alert.alert('Error', 'Debes estar autenticado para agregar lotes');
+        Alert.alert('Error', 'Debes estar autenticado para editar lotes');
         router.back();
       }
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [loteId]);
 
-  // Cargar animales desde la subcolección del usuario
+  const cargarLote = async (uid: string) => {
+    try {
+      if (!loteId) {
+        Alert.alert('Error', 'No se encontró el lote');
+        router.back();
+        return;
+      }
+
+      const loteData = await obtenerLotePorId(loteId as string);
+      if (loteData) {
+        setForm({
+          nombre: loteData.nombre || '',
+          area: loteData.area || '',
+          areaProductiva: loteData.areaProductiva || '',
+          tipoUso: loteData.tipoUso || '',
+          forrajePredominante: loteData.forrajePredominante || '',
+          estado: loteData.estado || 'Activo',
+        });
+
+        setAnimalesSeleccionados(loteData.animales || []);
+
+        // Si hay imagen base64, establecerla
+        if (loteData.imagen) {
+          setImagenBase64(loteData.imagen);
+          setImagen(loteData.imagen); // Para mostrar preview
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar lote:', error);
+      Alert.alert('Error', 'No se pudo cargar la información del lote');
+    }
+  };
+
   const cargarAnimalesDelUsuario = async (uid: string) => {
     try {
       const animalesRef = collection(db, 'usuarios', uid, 'animales');
@@ -106,10 +143,10 @@ export default function AgregarLoteScreen() {
     }
   };
 
-  // Guardar lote en la subcolección del usuario
-  const handleGuardar = async () => {
-    if (!user) {
-      Alert.alert('Error', 'Debes estar autenticado para agregar lotes');
+  // Actualizar lote
+  const handleActualizar = async () => {
+    if (!user || !loteId) {
+      Alert.alert('Error', 'Datos incompletos para actualizar');
       return;
     }
 
@@ -121,24 +158,23 @@ export default function AgregarLoteScreen() {
     setGuardando(true);
 
     try {
-      const nuevoLote = {
+      const loteRef = doc(db, 'usuarios', user.uid, 'lotes', loteId as string);
+      
+      await updateDoc(loteRef, {
         ...form,
         imagen: imagenBase64 || '',
         animales: animalesSeleccionados,
-        fechaCreacion: serverTimestamp(),
-      };
-
-      // Guardar en la subcolección 'lotes' del usuario
-      await addDoc(collection(db, 'usuarios', user.uid, 'lotes'), nuevoLote);
+        fechaActualizacion: new Date(),
+      });
 
       Alert.alert(
-        '✅ Lote agregado',
-        `Lote "${form.nombre}" registrado con ${animalesSeleccionados.length} animales.`,
+        '✅ Lote actualizado',
+        `Lote "${form.nombre}" ha sido actualizado correctamente.`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Error al guardar lote:', error);
-      Alert.alert('Error', 'No se pudo guardar el lote. Inténtalo de nuevo.');
+      console.error('Error al actualizar lote:', error);
+      Alert.alert('Error', 'No se pudo actualizar el lote. Inténtalo de nuevo.');
     } finally {
       setGuardando(false);
     }
@@ -167,7 +203,7 @@ export default function AgregarLoteScreen() {
           <ArrowLeft color="#fff" size={24} />
           <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Agregar Lote</Text>
+        <Text style={styles.headerTitle}>Editar Lote</Text>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -180,22 +216,23 @@ export default function AgregarLoteScreen() {
           onSeleccionarAnimales={() => setModalVisible(true)}
           animalesSeleccionados={animalesSeleccionados}
           guardando={guardando}
+          modoEdicion={true}
         />
 
-        {/* Botón Guardar */}
+        {/* Botón Actualizar */}
         <View style={styles.footer}>
           <TouchableOpacity 
             style={[
               styles.saveButton, 
               guardando && styles.saveButtonDisabled
             ]} 
-            onPress={handleGuardar}
+            onPress={handleActualizar}
             disabled={guardando}
           >
             {guardando ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.saveButtonText}>Guardar Lote</Text>
+              <Text style={styles.saveButtonText}>Actualizar Lote</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -214,6 +251,7 @@ export default function AgregarLoteScreen() {
   );
 }
 
+// Reutiliza los mismos estilos de AgregarLoteScreen
 const styles = {
   safeArea: { flex: 1, backgroundColor: '#f9f9f9' },
   loadingContainer: {

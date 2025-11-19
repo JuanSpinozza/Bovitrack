@@ -11,16 +11,36 @@ import {
   orderBy 
 } from "firebase/firestore";
 import { auth, db } from '../config/firebaseConfig';
+import { obtenerAnimales } from './animalesService'
+
+// Definir los estados válidos para los lotes
+export type EstadoLote = 'Activo' | 'En descanso / recuperación' | 'Cerrado / Mantenimiento';
 
 export interface Lote {
   id: string;
   nombre: string;
   area: string;
+  areaProductiva?: string;
+  tipoUso?: string;
+  forrajePredominante?: string;
+  estado: EstadoLote;
   imagen?: string;
-  animales: string[]; // Array de IDs de animales
+  animales: string[];
   fechaCreacion: any;
-  // Podemos agregar más campos si es necesario
+  fechaActualizacion?: any;
 }
+
+// Estados disponibles para validación
+export const ESTADOS_LOTE: EstadoLote[] = [
+  'Activo',
+  'En descanso / recuperación', 
+  'Cerrado / Mantenimiento'
+];
+
+// 🔹 Validar que un estado sea válido
+export const validarEstadoLote = (estado: string): estado is EstadoLote => {
+  return ESTADOS_LOTE.includes(estado as EstadoLote);
+};
 
 // 🔹 Obtener todos los lotes del usuario actual
 export const obtenerLotes = async (): Promise<Lote[]> => {
@@ -74,11 +94,16 @@ export const obtenerLotePorId = async (id: string): Promise<Lote | null> => {
 };
 
 // 🔹 Agregar un nuevo lote
-export const agregarLote = async (loteData: Omit<Lote, 'id' | 'fechaCreacion'>): Promise<Lote> => {
+export const agregarLote = async (loteData: Omit<Lote, 'id' | 'fechaCreacion' | 'fechaActualizacion'>): Promise<Lote> => {
   try {
     const user = auth.currentUser;
     if (!user) {
       throw new Error('Usuario no autenticado');
+    }
+
+    // Validar estado
+    if (!validarEstadoLote(loteData.estado)) {
+      throw new Error('Estado de lote inválido');
     }
 
     const lotesRef = collection(db, 'usuarios', user.uid, 'lotes');
@@ -106,6 +131,11 @@ export const actualizarLote = async (id: string, loteData: Partial<Omit<Lote, 'i
     const user = auth.currentUser;
     if (!user) {
       throw new Error('Usuario no autenticado');
+    }
+
+    // Validar estado si está presente
+    if (loteData.estado && !validarEstadoLote(loteData.estado)) {
+      throw new Error('Estado de lote inválido');
     }
 
     const loteRef = doc(db, 'usuarios', user.uid, 'lotes', id);
@@ -143,6 +173,8 @@ export const eliminarLote = async (id: string): Promise<void> => {
 export const buscarLotes = async (criterios: {
   nombre?: string;
   area?: string;
+  estado?: EstadoLote;
+  tipoUso?: string;
 }): Promise<Lote[]> => {
   try {
     const user = auth.currentUser;
@@ -162,6 +194,17 @@ export const buscarLotes = async (criterios: {
     
     if (criterios.area) {
       condiciones.push(where('area', '==', criterios.area));
+    }
+
+    if (criterios.estado) {
+      if (!validarEstadoLote(criterios.estado)) {
+        throw new Error('Estado de búsqueda inválido');
+      }
+      condiciones.push(where('estado', '==', criterios.estado));
+    }
+
+    if (criterios.tipoUso) {
+      condiciones.push(where('tipoUso', '==', criterios.tipoUso));
     }
     
     // Si hay condiciones, aplicarlas a la query
@@ -190,17 +233,42 @@ export const obtenerEstadisticasLotes = async (): Promise<{
   total: number;
   totalAnimales: number;
   promedioAnimalesPorLote: number;
+  porEstado: Record<EstadoLote, number>;
+  porTipoUso: Record<string, number>;
 }> => {
   try {
     const lotes = await obtenerLotes();
     
     const totalAnimales = lotes.reduce((acc, lote) => acc + lote.animales.length, 0);
     const promedioAnimalesPorLote = lotes.length > 0 ? totalAnimales / lotes.length : 0;
+
+    // Estadísticas por estado
+    const porEstado = {
+      'Activo': 0,
+      'En descanso / recuperación': 0,
+      'Cerrado / Mantenimiento': 0,
+    } as Record<EstadoLote, number>;
+
+    // Estadísticas por tipo de uso
+    const porTipoUso: Record<string, number> = {};
+
+    lotes.forEach(lote => {
+      // Contar por estado
+      if (validarEstadoLote(lote.estado)) {
+        porEstado[lote.estado]++;
+      }
+
+      // Contar por tipo de uso
+      const tipoUso = lote.tipoUso || 'No especificado';
+      porTipoUso[tipoUso] = (porTipoUso[tipoUso] || 0) + 1;
+    });
     
     return {
       total: lotes.length,
       totalAnimales,
       promedioAnimalesPorLote,
+      porEstado,
+      porTipoUso,
     };
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error);
@@ -219,6 +287,11 @@ export const agregarAnimalALote = async (loteId: string, animalId: string): Prom
     const lote = await obtenerLotePorId(loteId);
     if (!lote) {
       throw new Error('Lote no encontrado');
+    }
+
+    // Verificar que el lote esté activo
+    if (lote.estado !== 'Activo') {
+      throw new Error('No se pueden agregar animales a un lote inactivo');
     }
 
     // Evitar duplicados
@@ -260,15 +333,101 @@ export const removerAnimalDeLote = async (loteId: string, animalId: string): Pro
   }
 };
 
+// 🔹 Cambiar estado de un lote
+export const cambiarEstadoLote = async (loteId: string, nuevoEstado: EstadoLote): Promise<void> => {
+  try {
+    if (!validarEstadoLote(nuevoEstado)) {
+      throw new Error('Estado de lote inválido');
+    }
+
+    await actualizarLote(loteId, { estado: nuevoEstado });
+    console.log(`✅ Estado del lote ${loteId} cambiado a: ${nuevoEstado}`);
+  } catch (error) {
+    console.error(`❌ Error al cambiar estado del lote:`, error);
+    throw new Error('No se pudo cambiar el estado del lote');
+  }
+};
+
+// 🔹 Obtener lotes con animales (información completa)
+export const obtenerLotesConAnimales = async (): Promise<(Lote & { animalesInfo?: any[] })[]> => {
+  try {
+    const lotes = await obtenerLotes();
+    
+    
+    const todosAnimales = await obtenerAnimales();
+    
+    const lotesConAnimales = lotes.map(lote => ({
+      ...lote,
+      animalesInfo: lote.animales.map(animalId => 
+        todosAnimales.find(animal => animal.id === animalId)
+      ).filter(Boolean) // Remover undefined
+    }));
+    
+    return lotesConAnimales;
+  } catch (error) {
+    console.error('❌ Error al obtener lotes con animales:', error);
+    throw new Error('No se pudieron cargar los lotes con información de animales');
+  }
+};
+
+// 🔹 Función para obtener el color del estado
+export const obtenerColorEstado = (estado: EstadoLote): string => {
+  switch (estado) {
+    case 'Activo': return '#10B981';
+    case 'En descanso / recuperación': return '#F59E0B';
+    case 'Cerrado / Mantenimiento': return '#EF4444';
+    default: return '#6B7280';
+  }
+};
+
+// 🔹 Función para obtener el icono del estado
+export const obtenerIconoEstado = (estado: EstadoLote): string => {
+  switch (estado) {
+    case 'Activo': return '✓';
+    case 'En descanso / recuperación': return '⏰';
+    case 'Cerrado / Mantenimiento': return '⚠️';
+    default: return '❓';
+  }
+};
+
 // 🔹 Función para formatear lote para mostrar en la UI
 export const formatearLoteParaUI = (lote: Lote) => {
   return {
     id: lote.id,
     nombre: lote.nombre || 'Sin nombre',
     area: lote.area || 'No especificado',
+    areaProductiva: lote.areaProductiva,
+    tipoUso: lote.tipoUso,
+    forrajePredominante: lote.forrajePredominante,
     imagen: lote.imagen || '',
     animales: lote.animales || [],
     cantidadAnimales: lote.animales?.length || 0,
+    estado: lote.estado || 'Activo',
     fechaCreacion: lote.fechaCreacion,
+    fechaActualizacion: lote.fechaActualizacion,
   };
+};
+
+// 🔹 Función para obtener lotes vacíos
+export const obtenerLotesVacios = async (): Promise<Lote[]> => {
+  try {
+    const lotes = await obtenerLotes();
+    return lotes.filter(lote => lote.animales.length === 0);
+  } catch (error) {
+    console.error('❌ Error al obtener lotes vacíos:', error);
+    throw new Error('No se pudieron obtener los lotes vacíos');
+  }
+};
+
+// 🔹 Función para obtener lotes activos con capacidad
+export const obtenerLotesActivosConCapacidad = async (): Promise<Lote[]> => {
+  try {
+    const lotes = await obtenerLotes();
+    return lotes.filter(lote => 
+      lote.estado === 'Activo' && lote.animales.length > 0
+    );
+  } catch (error) {
+    console.error('❌ Error al obtener lotes activos:', error);
+    throw new Error('No se pudieron obtener los lotes activos');
+  }
 };
