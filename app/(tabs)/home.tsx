@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router'; // ✅ CAMBIAR ESTA IMPORTACIÓN
 import { ArrowLeftRight, DollarSign, Milk, Plus, Scale } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,6 +18,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { Dropdown } from 'react-native-element-dropdown';
 
+// Importar el servicio de animales
 import {
   Animal,
   AnimalUI,
@@ -29,6 +31,7 @@ const defaultAnimalImage = 'https://via.placeholder.com/280x160/005246/ffffff?te
 
 export default function HomeScreen() {
   const screenWidth = Dimensions.get('window').width;
+  const router = useRouter(); // ✅ ESTO AHORA FUNCIONARÁ
 
   // Estados para los datos reales
   const [animalesReales, setAnimalesReales] = useState<AnimalUI[]>([]);
@@ -344,7 +347,14 @@ export default function HomeScreen() {
               contentContainerStyle={styles.carouselContent}
             >
               {animalesReales.map((animal) => (
-                <View key={animal.id} style={styles.animalCard}>
+                <TouchableOpacity
+                  key={animal.id}
+                  style={styles.animalCard}
+                  onPress={() => router.push({
+                    pathname: '/EditarAnimal',
+                    params: { animalId: animal.id }
+                  })}
+                >
                   <Image
                     source={{ uri: animal.imagen || defaultAnimalImage }}
                     style={styles.animalImage}
@@ -373,7 +383,7 @@ export default function HomeScreen() {
                       </View>
                     )}
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
           ) : (
@@ -523,7 +533,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Los modales permanecen igual pero ahora usan las funciones actualizadas con auto-refresh */}
       {/* Modal Registrar Peso */}
       <Modal visible={modalPeso} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -576,7 +585,381 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* Los demás modales siguen la misma estructura... */}
+      {/* Modal Registrar Leche */}
+      <Modal visible={modalLeche} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Registrar Producción de Leche</Text>
+            
+            <Text style={styles.label}>Seleccionar Vaca</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={vacasDropdown}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione una vaca"
+              value={lecheForm.animal}
+              onChange={(item) => setLecheForm({ ...lecheForm, animal: item.value })}
+            />
+
+            <Text style={styles.label}>Litros de Leche</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ingrese los litros"
+              keyboardType="numeric"
+              value={lecheForm.litros}
+              onChangeText={(text) => setLecheForm({ ...lecheForm, litros: text })}
+            />
+
+            <Text style={styles.label}>Fecha</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="DD/MM/AAAA"
+              value={lecheForm.fecha}
+              onChangeText={(text) => setLecheForm({ ...lecheForm, fecha: text })}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalLeche(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleRegistrarLeche}
+              >
+                <Text style={styles.confirmButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Registrar Rotación */}
+      <Modal visible={modalRotacion} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Registrar Rotación</Text>
+            
+            <Text style={styles.label}>Lote/Ubicación de Origen</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={ubicaciones}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione origen"
+              value={rotacionForm.origen}
+              onChange={(item) => setRotacionForm({ ...rotacionForm, origen: item.value })}
+            />
+
+            <Text style={styles.label}>Lote/Ubicación de Destino</Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={ubicaciones}
+              labelField="label"
+              valueField="value"
+              placeholder="Seleccione destino"
+              value={rotacionForm.destino}
+              onChange={(item) => setRotacionForm({ ...rotacionForm, destino: item.value })}
+            />
+
+            <Text style={styles.label}>Seleccionar Animales a Rotar</Text>
+            <ScrollView style={styles.animalesScroll}>
+              {animalesMultiple.map((animal) => (
+                <TouchableOpacity
+                  key={animal.value}
+                  style={[
+                    styles.animalItem,
+                    rotacionForm.animales.includes(animal.value) && styles.animalItemSelected
+                  ]}
+                  onPress={() => handleAnimalSelection(animal)}
+                >
+                  <Text style={[
+                    styles.animalText,
+                    rotacionForm.animales.includes(animal.value) && styles.animalTextSelected
+                  ]}>
+                    {animal.label}
+                  </Text>
+                  {rotacionForm.animales.includes(animal.value) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {rotacionForm.animales.length > 0 && (
+              <View style={styles.selectedAnimals}>
+                <Text style={styles.selectedText}>
+                  {rotacionForm.animales.length} animal(es) seleccionado(s)
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalRotacion(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleRegistrarRotacion}
+              >
+                <Text style={styles.confirmButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Registrar Venta */}
+      <Modal visible={modalVenta} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
+            <Text style={styles.modalTitle}>Registrar Venta</Text>
+            
+            <Text style={styles.label}>Tipo de Venta</Text>
+            <View style={styles.tipoVentaContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tipoVentaButton,
+                  tipoVenta === 'animal' && styles.tipoVentaButtonActive
+                ]}
+                onPress={() => setTipoVenta('animal')}
+              >
+                <Text style={[
+                  styles.tipoVentaText,
+                  tipoVenta === 'animal' && styles.tipoVentaTextActive
+                ]}>
+                  Animal
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tipoVentaButton,
+                  tipoVenta === 'leche' && styles.tipoVentaButtonActive
+                ]}
+                onPress={() => setTipoVenta('leche')}
+              >
+                <Text style={[
+                  styles.tipoVentaText,
+                  tipoVenta === 'leche' && styles.tipoVentaTextActive
+                ]}>
+                  Leche
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {tipoVenta === 'animal' ? (
+              <>
+                <Text style={styles.label}>Fecha de Venta</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="DD/MM/AAAA"
+                  value={ventaAnimalForm.fecha}
+                  onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, fecha: text })}
+                />
+
+                <Text style={styles.label}>Animal Vendido</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  data={animalesDropdown}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Seleccione el animal"
+                  value={ventaAnimalForm.animal}
+                  onChange={(item) => setVentaAnimalForm({ ...ventaAnimalForm, animal: item.value })}
+                />
+
+                <Text style={styles.label}>Peso del Animal (kg)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ingrese el peso"
+                  keyboardType="numeric"
+                  value={ventaAnimalForm.peso}
+                  onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, peso: text })}
+                />
+
+                <Text style={styles.label}>Tipo de Precio</Text>
+                <View style={styles.tipoPrecioContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tipoPrecioButton,
+                      ventaAnimalForm.tipoPrecio === 'kilo' && styles.tipoPrecioButtonActive
+                    ]}
+                    onPress={() => {
+                      setVentaAnimalForm({ ...ventaAnimalForm, tipoPrecio: 'kilo', precioFijo: '' });
+                      setTimeout(calcularTotalVentaAnimal, 100);
+                    }}
+                  >
+                    <Text style={[
+                      styles.tipoPrecioText,
+                      ventaAnimalForm.tipoPrecio === 'kilo' && styles.tipoPrecioTextActive
+                    ]}>
+                      Por Kilo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.tipoPrecioButton,
+                      ventaAnimalForm.tipoPrecio === 'fijo' && styles.tipoPrecioButtonActive
+                    ]}
+                    onPress={() => {
+                      setVentaAnimalForm({ ...ventaAnimalForm, tipoPrecio: 'fijo', precioKilo: '' });
+                      setTimeout(calcularTotalVentaAnimal, 100);
+                    }}
+                  >
+                    <Text style={[
+                      styles.tipoPrecioText,
+                      ventaAnimalForm.tipoPrecio === 'fijo' && styles.tipoPrecioTextActive
+                    ]}>
+                      Precio Fijo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {ventaAnimalForm.tipoPrecio === 'kilo' ? (
+                  <>
+                    <Text style={styles.label}>Precio por Kilo ($)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Precio por kilo"
+                      keyboardType="numeric"
+                      value={ventaAnimalForm.precioKilo}
+                      onChangeText={(text) => {
+                        setVentaAnimalForm({ ...ventaAnimalForm, precioKilo: text });
+                        setTimeout(calcularTotalVentaAnimal, 100);
+                      }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.label}>Precio Fijo ($)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Precio fijo"
+                      keyboardType="numeric"
+                      value={ventaAnimalForm.precioFijo}
+                      onChangeText={(text) => {
+                        setVentaAnimalForm({ ...ventaAnimalForm, precioFijo: text });
+                        setTimeout(calcularTotalVentaAnimal, 100);
+                      }}
+                    />
+                  </>
+                )}
+
+                <Text style={styles.label}>Total de Venta ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Total"
+                  keyboardType="numeric"
+                  value={ventaAnimalForm.total}
+                  editable={false}
+                />
+
+                <Text style={styles.label}>Comprador</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre del comprador"
+                  value={ventaAnimalForm.comprador}
+                  onChangeText={(text) => setVentaAnimalForm({ ...ventaAnimalForm, comprador: text })}
+                />
+
+                <Text style={styles.label}>Motivo de Venta</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  data={motivosVenta}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Seleccione el motivo"
+                  value={ventaAnimalForm.motivo}
+                  onChange={(item) => setVentaAnimalForm({ ...ventaAnimalForm, motivo: item.value })}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Fecha de Venta</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="DD/MM/AAAA"
+                  value={ventaLecheForm.fecha}
+                  onChangeText={(text) => setVentaLecheForm({ ...ventaLecheForm, fecha: text })}
+                />
+
+                <Text style={styles.label}>Vaca</Text>
+                <Dropdown
+                  style={styles.dropdown}
+                  data={vacasDropdown}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="Seleccione la vaca"
+                  value={ventaLecheForm.vaca}
+                  onChange={(item) => setVentaLecheForm({ ...ventaLecheForm, vaca: item.value })}
+                />
+
+                <Text style={styles.label}>Cantidad de Leche (L)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Litros vendidos"
+                  keyboardType="numeric"
+                  value={ventaLecheForm.cantidad}
+                  onChangeText={(text) => {
+                    setVentaLecheForm({ ...ventaLecheForm, cantidad: text });
+                    setTimeout(calcularTotalVentaLeche, 100);
+                  }}
+                />
+
+                <Text style={styles.label}>Precio por Litro ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Precio por litro"
+                  keyboardType="numeric"
+                  value={ventaLecheForm.precioLitro}
+                  onChangeText={(text) => {
+                    setVentaLecheForm({ ...ventaLecheForm, precioLitro: text });
+                    setTimeout(calcularTotalVentaLeche, 100);
+                  }}
+                />
+
+                <Text style={styles.label}>Total de Venta ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Total"
+                  keyboardType="numeric"
+                  value={ventaLecheForm.total}
+                  editable={false}
+                />
+
+                <Text style={styles.label}>Comprador</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre del comprador"
+                  value={ventaLecheForm.comprador}
+                  onChangeText={(text) => setVentaLecheForm({ ...ventaLecheForm, comprador: text })}
+                />
+              </>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVenta(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleRegistrarVenta}
+              >
+                <Text style={styles.confirmButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
