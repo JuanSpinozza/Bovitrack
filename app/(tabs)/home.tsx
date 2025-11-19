@@ -15,6 +15,14 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { Dropdown } from 'react-native-element-dropdown';
 
+// Importar las imágenes (asegúrate de que estas rutas sean correctas)
+// @ts-ignore
+import normando from '../../assets/images/toronormando.jpg';
+// @ts-ignore
+import cebu from '../../assets/images/torocebu.jpg';
+// @ts-ignore
+import brangus from '../../assets/images/torobrangus.jpg';
+
 export default function HomeScreen() {
   const screenWidth = Dimensions.get('window').width;
 
@@ -32,6 +40,31 @@ export default function HomeScreen() {
     destino: '', 
     animales: [] as string[] 
   });
+
+  // Datos para el scroll horizontal de animales destacados
+  const animalesDestacados = [
+    {
+      id: '1',
+      nombre: 'Magnus',
+      codigo: 'cod#21123123',
+      raza: 'Imperial',
+      imagen: normando
+    },
+    {
+      id: '2',
+      nombre: 'Thor',
+      codigo: 'cod#21123126',
+      raza: 'Cebú',
+      imagen: cebu
+    },
+    {
+      id: '3',
+      nombre: 'Zeus',
+      codigo: 'cod#21123127',
+      raza: 'Brangus',
+      imagen: brangus
+    }
+  ];
 
   // Datos quemados
   const animales = [
@@ -120,21 +153,30 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>Página Principal</Text>
         </View>
 
-        {/* Imagen destacada */}
-        <View style={styles.card}>
-          <Image
-            source={{
-              uri: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg',
-            }}
-            style={styles.image}
-          />
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Magnus</Text>
-            <Text style={styles.cardSubtitle}>cod#21123123</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Imperial</Text>
-            </View>
-          </View>
+        {/* Scroll horizontal de animales destacados */}
+        <View style={styles.carouselContainer}>
+          <Text style={styles.carouselTitle}>Animales Destacados</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContent}
+          >
+            {animalesDestacados.map((animal) => (
+              <View key={animal.id} style={styles.animalCard}>
+                <Image
+                  source={animal.imagen}
+                  style={styles.animalImage}
+                />
+                <View style={styles.animalCardTextContainer}>
+                  <Text style={styles.animalCardTitle}>{animal.nombre}</Text>
+                  <Text style={styles.animalCardSubtitle}>{animal.codigo}</Text>
+                  <View style={styles.animalBadge}>
+                    <Text style={styles.animalBadgeText}>{animal.raza}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Estadísticas deslizables */}
@@ -210,51 +252,51 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-<View style={styles.floatingActionContainer}>
-  {showActionMenu && (
-    <View style={styles.actionMenu}>
-      <TouchableOpacity 
-        style={styles.actionMenuItem}
-        onPress={() => {
-          setShowActionMenu(false);
-          setModalPeso(true);
-        }}
-      >
-        <Scale color="#fff" size={20} />
-        <Text style={styles.actionMenuText}>Registrar Peso</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.actionMenuItem}
-        onPress={() => {
-          setShowActionMenu(false);
-          setModalLeche(true);
-        }}
-      >
-        <Milk color="#fff" size={20} />
-        <Text style={styles.actionMenuText}>Registrar Leche</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.actionMenuItem}
-        onPress={() => {
-          setShowActionMenu(false);
-          setModalRotacion(true);
-        }}
-      >
-        <ArrowLeftRight color="#fff" size={20} />
-        <Text style={styles.actionMenuText}>Registrar Rotación</Text>
-      </TouchableOpacity>
-    </View>
-  )}
-  
-  <TouchableOpacity 
-    style={styles.fab}
-    onPress={() => setShowActionMenu(!showActionMenu)}
-  >
-    <Plus color="#fff" size={24} />
-  </TouchableOpacity>
-</View>
+      <View style={styles.floatingActionContainer}>
+        {showActionMenu && (
+          <View style={styles.actionMenu}>
+            <TouchableOpacity 
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowActionMenu(false);
+                setModalPeso(true);
+              }}
+            >
+              <Scale color="#fff" size={20} />
+              <Text style={styles.actionMenuText}>Registrar Peso</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowActionMenu(false);
+                setModalLeche(true);
+              }}
+            >
+              <Milk color="#fff" size={20} />
+              <Text style={styles.actionMenuText}>Registrar Leche</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowActionMenu(false);
+                setModalRotacion(true);
+              }}
+            >
+              <ArrowLeftRight color="#fff" size={20} />
+              <Text style={styles.actionMenuText}>Registrar Rotación</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => setShowActionMenu(!showActionMenu)}
+        >
+          <Plus color="#fff" size={24} />
+        </TouchableOpacity>
+      </View>
 
       {/* Modal Registrar Peso */}
       <Modal visible={modalPeso} animationType="slide" transparent>
@@ -456,37 +498,51 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#005246',
   },
-  card: {
-    marginHorizontal: 16,
+  // Nuevos estilos para el carousel de animales
+  carouselContainer: {
+    marginTop: 10,
+  },
+  carouselTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#005246',
+    marginLeft: 16,
+    marginBottom: 10,
+  },
+  carouselContent: {
+    paddingHorizontal: 16,
+  },
+  animalCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
-    marginTop: 10,
+    marginRight: 12,
+    width: 280,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  image: {
+  animalImage: {
     width: '100%',
     height: 160,
   },
-  cardTextContainer: {
+  animalCardTextContainer: {
     padding: 16,
     position: 'relative',
   },
-  cardTitle: {
+  animalCardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
   },
-  cardSubtitle: {
+  animalCardSubtitle: {
     fontSize: 14,
     color: '#666',
     marginTop: 4,
   },
-  badge: {
+  animalBadge: {
     position: 'absolute',
     right: 16,
     top: -140,
@@ -495,7 +551,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-  badgeText: {
+  animalBadgeText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
@@ -574,10 +630,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   // Floating Action Button Styles
-   floatingActionContainer: {
+  floatingActionContainer: {
     position: 'absolute',
     bottom: 20,
-    right: 20, // Cambiado de left: 20 a right: 20
+    right: 20,
     zIndex: 1000,
   },
   fab: {
@@ -596,7 +652,7 @@ const styles = StyleSheet.create({
   actionMenu: {
     position: 'absolute',
     bottom: 70,
-    right: 0, // Cambiado de left: 0 a right: 0
+    right: 0,
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 8,
