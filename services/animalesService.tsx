@@ -13,6 +13,7 @@ import {
 import { auth, db } from '../config/firebaseConfig';
 
 export interface Animal {
+  foto: null;
   id: string;
   // Campos básicos
   'ID o código': string;
