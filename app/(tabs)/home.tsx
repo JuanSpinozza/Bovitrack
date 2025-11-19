@@ -331,7 +331,7 @@ export default function HomeScreen() {
         {/* Scroll horizontal de animales destacados */}
         <View style={styles.carouselContainer}>
           <View style={styles.carouselHeader}>
-            <Text style={styles.carouselTitle}>Animales Destacados</Text>
+            <Text style={styles.carouselTitle}>Animales </Text>
             <Text style={styles.animalCount}>
               {animalesReales?.length || 0} animales
             </Text>
