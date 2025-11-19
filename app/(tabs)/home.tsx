@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router'; // ✅ CAMBIAR ESTA IMPORTACIÓN
+import { useRouter } from 'expo-router';
 import { ArrowLeftRight, DollarSign, Milk, Plus, Scale } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -20,6 +20,10 @@ import { Dropdown } from 'react-native-element-dropdown';
 
 // Importar el servicio de animales
 import {
+  actualizarAnimal // ✅ AGREGAR ESTA IMPORTACIÓN
+  ,
+
+
   Animal,
   AnimalUI,
   formatearAnimalParaUI,
@@ -29,9 +33,17 @@ import {
 // Imagen por defecto para animales sin foto
 const defaultAnimalImage = 'https://via.placeholder.com/280x160/005246/ffffff?text=🐄';
 
+// Interfaz para el registro de peso
+interface RegistroPeso {
+  id: string;
+  fecha: string;
+  peso: string;
+  observaciones?: string;
+}
+
 export default function HomeScreen() {
   const screenWidth = Dimensions.get('window').width;
-  const router = useRouter(); // ✅ ESTO AHORA FUNCIONARÁ
+  const router = useRouter();
 
   // Estados para los datos reales
   const [animalesReales, setAnimalesReales] = useState<AnimalUI[]>([]);
@@ -187,21 +199,73 @@ export default function HomeScreen() {
     { label: 'Comercialización', value: 'comercializacion' },
   ];
 
-  // Funciones para manejar formularios existentes - ahora con auto-refresh
-  const handleRegistrarPeso = () => {
+  // Función para agregar registro de peso - CORREGIDA
+  const agregarRegistroPeso = async () => {
     if (!pesoForm.animal || !pesoForm.peso || !pesoForm.fecha) {
       Alert.alert('Error', 'Por favor complete todos los campos');
       return;
     }
-    
-    handleActionWithRefresh(async () => {
+
+    try {
+      // Obtener el animal seleccionado para mostrar su nombre
+      const animalSeleccionado = animalesReales.find(animal => animal.id === pesoForm.animal);
+      
+      if (!animalSeleccionado) {
+        Alert.alert('Error', 'Animal no encontrado');
+        return;
+      }
+
+      // Crear el nuevo registro de peso
+      const nuevoRegistro: RegistroPeso = {
+        id: Date.now().toString(),
+        fecha: pesoForm.fecha,
+        peso: `${pesoForm.peso}`
+      };
+
+      // Obtener todos los animales para actualizar el correcto
+      const animalesData = await obtenerAnimales();
+      const animalAActualizar = animalesData.find(animal => animal.id === pesoForm.animal);
+      
+      if (!animalAActualizar) {
+        Alert.alert('Error', 'No se pudo encontrar el animal en la base de datos');
+        return;
+      }
+
+      // Agregar el nuevo registro al array de registros de peso del animal
+      const registrosPesoExistentes = animalAActualizar.registrosPeso || [];
+      const registrosPesoActualizados = [...registrosPesoExistentes, nuevoRegistro];
+
+      // Actualizar el animal en la base de datos
+      const animalActualizado = {
+        ...animalAActualizar,
+        registrosPeso: registrosPesoActualizados,
+        // También actualizar el peso actual si es necesario
+        peso: `${pesoForm.peso} kg`
+      };
+
+      // Guardar en la base de datos
+      await actualizarAnimal(pesoForm.animal, animalActualizado);
+
       Alert.alert(
         '✅ Peso Registrado', 
-        `Animal: ${pesoForm.animal}\nPeso: ${pesoForm.peso} kg\nFecha: ${pesoForm.fecha}`
+        `Animal: ${animalSeleccionado.nombre}\nPeso: ${pesoForm.peso} kg\nFecha: ${pesoForm.fecha}`
       );
+      
+      // Limpiar formulario
       setPesoForm({ animal: '', peso: '', fecha: '' });
       setModalPeso(false);
-    });
+      
+      // Recargar datos
+      cargarAnimales();
+      
+    } catch (error) {
+      console.error('Error al registrar peso:', error);
+      Alert.alert('Error', 'No se pudo registrar el peso');
+    }
+  };
+
+  const handleRegistrarPeso = () => {
+    agregarRegistroPeso();
   };
 
   const handleRegistrarLeche = () => {
@@ -550,7 +614,7 @@ export default function HomeScreen() {
               onChange={(item) => setPesoForm({ ...pesoForm, animal: item.value })}
             />
 
-            <Text style={styles.label}>Peso (kg)</Text>
+            <Text style={styles.label}>Peso </Text>
             <TextInput
               style={styles.input}
               placeholder="Ingrese el peso"
@@ -576,61 +640,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.confirmButton}
-                onPress={handleRegistrarPeso}
+                onPress={agregarRegistroPeso}
               >
-                <Text style={styles.confirmButtonText}>Aceptar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal Registrar Leche */}
-      <Modal visible={modalLeche} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Registrar Producción de Leche</Text>
-            
-            <Text style={styles.label}>Seleccionar Vaca</Text>
-            <Dropdown
-              style={styles.dropdown}
-              data={vacasDropdown}
-              labelField="label"
-              valueField="value"
-              placeholder="Seleccione una vaca"
-              value={lecheForm.animal}
-              onChange={(item) => setLecheForm({ ...lecheForm, animal: item.value })}
-            />
-
-            <Text style={styles.label}>Litros de Leche</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ingrese los litros"
-              keyboardType="numeric"
-              value={lecheForm.litros}
-              onChangeText={(text) => setLecheForm({ ...lecheForm, litros: text })}
-            />
-
-            <Text style={styles.label}>Fecha</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="DD/MM/AAAA"
-              value={lecheForm.fecha}
-              onChangeText={(text) => setLecheForm({ ...lecheForm, fecha: text })}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalLeche(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleRegistrarLeche}
-              >
-                <Text style={styles.confirmButtonText}>Aceptar</Text>
+                <Text style={styles.confirmButtonText}>Guardar</Text>
               </TouchableOpacity>
             </View>
           </View>
