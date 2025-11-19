@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     marginBottom: moderateVerticalScale(isSmallDevice ? 20 : 30),
   },
   title: {
-    fontSize: moderateScale(isSmallDevice ? 52 : isMediumDevice ? 80 : 72),
+    fontSize: moderateScale(isSmallDevice ? 46 : isMediumDevice ? 70 : 62),
     fontWeight: 'bold',
     color: '#2C1810',
     letterSpacing: -0.5,

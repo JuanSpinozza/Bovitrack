@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,20 +14,20 @@ import {
   Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Plus } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-
-// 📋 Datos simulados de animales existentes (para selección)
-const animalesExistentes = [
-  { id: 1, nombre: 'Magus pro', tipo: '🐂', estado: 'Saludable' },
-  { id: 2, nombre: 'King rey', tipo: '🐃', estado: 'Enfermo' },
-  { id: 3, nombre: 'Lola', tipo: '🐄', estado: 'Saludable' },
-];
+import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { auth, db } from '../config/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function AgregarLoteScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [animalesExistentes, setAnimalesExistentes] = useState<any[]>([]);
 
   const [form, setForm] = useState({
     nombre: '',
@@ -35,8 +35,42 @@ export default function AgregarLoteScreen() {
   });
 
   const [imagen, setImagen] = useState<string | null>(null);
-  const [animalesSeleccionados, setAnimalesSeleccionados] = useState<number[]>([]);
+  const [animalesSeleccionados, setAnimalesSeleccionados] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Verificar autenticación y cargar animales del usuario
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        await cargarAnimalesDelUsuario(user.uid);
+      } else {
+        Alert.alert('Error', 'Debes estar autenticado para agregar lotes');
+        router.back();
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Cargar animales desde la subcolección del usuario
+  const cargarAnimalesDelUsuario = async (uid: string) => {
+    try {
+      const animalesRef = collection(db, 'usuarios', uid, 'animales');
+      const snapshot = await getDocs(animalesRef);
+      
+      const animalesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      
+      setAnimalesExistentes(animalesData);
+    } catch (error) {
+      console.error('Error al cargar animales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los animales');
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -50,24 +84,53 @@ export default function AgregarLoteScreen() {
     if (!result.canceled) setImagen(result.assets[0].uri);
   };
 
-  const handleGuardar = () => {
+  // Guardar lote en la subcolección del usuario
+  const handleGuardar = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes estar autenticado para agregar lotes');
+      return;
+    }
+
     if (!form.nombre || !form.area) {
       Alert.alert('⚠️ Campos incompletos', 'Por favor completa el nombre y área del lote.');
       return;
     }
 
-    Alert.alert(
-      '✅ Lote agregado',
-      `Lote "${form.nombre}" registrado con ${animalesSeleccionados.length} animales.`
-    );
-    router.back();
+    try {
+      const nuevoLote = {
+        ...form,
+        imagen: imagen || '',
+        animales: animalesSeleccionados,
+        fechaCreacion: serverTimestamp(),
+      };
+
+      // Guardar en la subcolección 'lotes' del usuario
+      await addDoc(collection(db, 'usuarios', user.uid, 'lotes'), nuevoLote);
+
+      Alert.alert(
+        '✅ Lote agregado',
+        `Lote "${form.nombre}" registrado con ${animalesSeleccionados.length} animales.`
+      );
+      router.back();
+    } catch (error) {
+      console.error('Error al guardar lote:', error);
+      Alert.alert('Error', 'No se pudo guardar el lote. Inténtalo de nuevo.');
+    }
   };
 
-  const toggleAnimal = (id: number) => {
+  const toggleAnimal = (id: string) => {
     setAnimalesSeleccionados((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Cargando...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -142,25 +205,35 @@ export default function AgregarLoteScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {animalesExistentes.map((animal) => (
-              <TouchableOpacity
-                key={animal.id}
-                style={[
-                  styles.animalCard,
-                  animalesSeleccionados.includes(animal.id) && styles.animalCardSelected,
-                ]}
-                onPress={() => toggleAnimal(animal.id)}
-              >
-                <Text style={styles.animalEmoji}>{animal.tipo}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.animalName}>{animal.nombre}</Text>
-                  <Text style={styles.animalStatus}>{animal.estado}</Text>
-                </View>
-                {animalesSeleccionados.includes(animal.id) && (
-                  <Text style={styles.selectedCheck}>✔</Text>
-                )}
-              </TouchableOpacity>
-            ))}
+            {animalesExistentes.length === 0 ? (
+              <Text style={styles.noAnimalsText}>
+                No tienes animales registrados. Agrega animales primero.
+              </Text>
+            ) : (
+              animalesExistentes.map((animal) => (
+                <TouchableOpacity
+                  key={animal.id}
+                  style={[
+                    styles.animalCard,
+                    animalesSeleccionados.includes(animal.id) && styles.animalCardSelected,
+                  ]}
+                  onPress={() => toggleAnimal(animal.id)}
+                >
+                  <Text style={styles.animalEmoji}>
+                    {animal.sexo === 'Hembra' ? '🐄' : '🐂'}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.animalName}>{animal.Nombre || 'Sin nombre'}</Text>
+                    <Text style={styles.animalStatus}>
+                      {animal['Tipo de animal'] || 'Animal'} • {animal.estado || 'Saludable'}
+                    </Text>
+                  </View>
+                  {animalesSeleccionados.includes(animal.id) && (
+                    <Text style={styles.selectedCheck}>✔</Text>
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
 
           <TouchableOpacity
@@ -175,8 +248,19 @@ export default function AgregarLoteScreen() {
   );
 }
 
+// Los estilos se mantienen igual...
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f9f9f9' },
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: '#f9f9f9' 
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
   header: {
     backgroundColor: '#005246',
     flexDirection: 'row',
@@ -190,12 +274,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
   },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginRight: 10 },
-  backText: { color: '#fff', fontWeight: '600', fontSize: 16, marginLeft: 4 },
-  headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: 18, marginLeft: 10 },
-  container: { flex: 1, padding: 20 },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 14, fontWeight: '600', color: '#005246', marginBottom: 5 },
+  backButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginRight: 10 
+  },
+  backText: { 
+    color: '#fff', 
+    fontWeight: '600', 
+    fontSize: 16, 
+    marginLeft: 4 
+  },
+  headerTitle: { 
+    color: '#fff', 
+    fontWeight: 'bold', 
+    fontSize: 18, 
+    marginLeft: 10 
+  },
+  container: { 
+    flex: 1, 
+    padding: 20 
+  },
+  inputGroup: { 
+    marginBottom: 14 
+  },
+  label: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#005246', 
+    marginBottom: 5 
+  },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -217,9 +325,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  imageButtonText: { color: '#005246', fontWeight: '700', fontSize: 15 },
-  imagePreview: { width: '100%', height: 220, borderRadius: 12, marginTop: 10 },
-  selectedText: { textAlign: 'center', marginTop: 10, color: '#005246', fontWeight: '600' },
+  imageButtonText: { 
+    color: '#005246', 
+    fontWeight: '700', 
+    fontSize: 15 
+  },
+  imagePreview: { 
+    width: '100%', 
+    height: 220, 
+    borderRadius: 12, 
+    marginTop: 10 
+  },
+  selectedText: { 
+    textAlign: 'center', 
+    marginTop: 10, 
+    color: '#005246', 
+    fontWeight: '600' 
+  },
   saveButton: {
     backgroundColor: '#005246',
     paddingVertical: 15,
@@ -232,7 +354,11 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  saveButtonText: { 
+    color: '#fff', 
+    fontWeight: 'bold', 
+    fontSize: 16 
+  },
   animalCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,8 +372,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#005246',
   },
-  animalEmoji: { fontSize: 26, marginRight: 10 },
-  animalName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  animalStatus: { fontSize: 13, color: '#666' },
-  selectedCheck: { fontSize: 20, color: '#005246', fontWeight: 'bold' },
+  animalEmoji: { 
+    fontSize: 26, 
+    marginRight: 10 
+  },
+  animalName: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: '#333' 
+  },
+  animalStatus: { 
+    fontSize: 13, 
+    color: '#666' 
+  },
+  selectedCheck: { 
+    fontSize: 20, 
+    color: '#005246', 
+    fontWeight: 'bold' 
+  },
+  noAnimalsText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
+    fontStyle: 'italic',
+  },
 });

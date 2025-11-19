@@ -1,32 +1,68 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { Scale } from 'lucide-react-native';
+// components/AnimalCard.tsx
 import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Edit3, Trash2 } from 'lucide-react-native';
 
-export default function AnimalCard({ animal, showProduction = false }) {
+interface Animal {
+  id: string;
+  nombre: string;
+  codigo: string;
+  edad: string;
+  estado: string;
+  peso?: string;
+  produccion?: string;
+  imagen: string;
+  tipo?: string;
+  sexo?: string;
+}
+
+interface AnimalCardProps {
+  animal: Animal;
+  showProduction: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+export default function AnimalCard({ animal, showProduction, onEdit, onDelete }: AnimalCardProps) {
   return (
     <View style={styles.card}>
-      <View style={styles.cardContent}>
-        <View style={styles.animalImage}>
-          <Text style={styles.emoji}>{animal.imagen}</Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.emoji}>{animal.imagen}</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.name}>{animal.nombre}</Text>
+          <Text style={styles.code}>Código: {animal.codigo}</Text>
         </View>
-        
-        <View style={styles.animalInfo}>
-          <Text style={styles.animalName}>{animal.nombre}</Text>
-          <Text style={styles.animalCode}>{animal.codigo}</Text>
-          <Text style={styles.animalAge}>{animal.edad}</Text>
-          <Text style={styles.animalStatus}>
-            Estado: <Text style={animal.estado === 'Enfermo' ? styles.statusEnfermo : styles.statusSaludable}>
-              {animal.estado}
-            </Text>
-          </Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
+            <Edit3 size={18} color="#005246" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
+            <Trash2 size={18} color="#e74c3c" />
+          </TouchableOpacity>
         </View>
-
-        <View style={styles.rightSection}>
-          <Scale color="#999" size={20} />
-          <Text style={styles.measurementText}>
-            {showProduction ? animal.produccion : animal.peso}
-          </Text>
+      </View>
+      
+      <View style={styles.cardBody}>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Edad:</Text>
+          <Text style={styles.value}>{animal.edad}</Text>
         </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Estado:</Text>
+          <Text style={[styles.value, styles.status]}>{animal.estado}</Text>
+        </View>
+        {animal.peso && (
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Peso:</Text>
+            <Text style={styles.value}>{animal.peso}</Text>
+          </View>
+        )}
+        {showProduction && animal.produccion && (
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Producción:</Text>
+            <Text style={styles.value}>{animal.produccion}</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -36,68 +72,64 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 15,
-    padding: 15,
-    borderWidth: 2,
-    borderColor: '#005246',
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  cardContent: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  animalImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 12,
   },
   emoji: {
-    fontSize: 30,
+    fontSize: 32,
+    marginRight: 12,
   },
-  animalInfo: {
+  headerInfo: {
     flex: 1,
   },
-  animalName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 2,
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  animalCode: {
-    fontSize: 13,
+  code: {
+    fontSize: 14,
     color: '#666',
-    marginBottom: 2,
+    marginTop: 2,
   },
-  animalAge: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 2,
-  },
-  animalStatus: {
-    fontSize: 13,
-    color: '#666',
-  },
-  statusEnfermo: {
-    color: '#ff0000',
-    fontWeight: '500',
-  },
-  statusSaludable: {
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-  rightSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
+  actions: {
     flexDirection: 'row',
-    gap: 5,
+    gap: 8,
   },
-  measurementText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
+  actionButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+  },
+  cardBody: {
+    gap: 6,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  label: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  value: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  status: {
+    color: '#27ae60',
   },
 });
