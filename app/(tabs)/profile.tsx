@@ -1,8 +1,8 @@
+import { logout, subscribeToAuthChanges } from '@/services/authServices';
 import { useRouter } from 'expo-router';
 import { User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { logout, subscribeToAuthChanges } from '../../services/authServices';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -84,15 +84,28 @@ export default function ProfileScreen() {
         <Text style={styles.arrow}>›</Text>
       </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>Soporte</Text>
-          <Text style={styles.arrow}>›</Text>
+        <TouchableOpacity 
+        style={styles.menuItem}
+        onPress={() => router.push("/Soporte")}   // ⬅ Aquí va tu navegación
+        >
+        <Text style={styles.menuText}>Soporte</Text>
+        <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
-      <TouchableOpacity style={styles.menuItem}>
-        <Text style={styles.menuText}>Cambiar contraseña</Text>
-        <Text style={styles.arrow}>›</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => {
+        router.push({
+        pathname: '/Password_Change',
+        params: { userId: user?.uid },
+          });
+        }}
+        >
+
+  <Text style={styles.menuText}>Cambiar contraseña</Text>
+  <Text style={styles.arrow}>›</Text>
+</TouchableOpacity>
+
 
       <TouchableOpacity style={styles.menuItemLogout} onPress={handleLogOut}>
         <Text style={styles.logoutText}>Cerrar sesión</Text>

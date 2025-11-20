@@ -1,4 +1,5 @@
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getAuth, updatePassword } from "firebase/auth";
+import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore";
 import { app } from "../config/firebaseConfig";
 
 const db = getFirestore(app);
@@ -48,5 +49,22 @@ export const obtenerPerfilUsuario = async (userId: string) => {
   } catch (error) {
     console.error("Error obteniendo perfil:", error);
     return { success: false, data: null };
+  }
+};
+
+export const cambiarContraseña = async (newPassword: string) => {
+  const auth = getAuth(app);
+  const user = auth.currentUser;
+
+  if (user) {
+    try {
+      await updatePassword(user, newPassword);
+      return { success: true };
+    } catch (error) {
+      console.error("Error al cambiar la contraseña:", error);
+      return { success: false, error: "No se pudo cambiar la contraseña" };
+    }
+  } else {
+    return { success: false, error: "No hay usuario autenticado" };
   }
 };
