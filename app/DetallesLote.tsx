@@ -1,3 +1,4 @@
+// DetallesLote.tsx
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -9,6 +10,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Dimensions,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -23,10 +26,12 @@ import {
   Clock,
   AlertCircle,
   Trash2,
-  Square
+  Square,
+  Search,
+  X
 } from 'lucide-react-native';
-import { obtenerLotePorId, Lote, eliminarLote, EstadoLote, obtenerColorEstado } from '@/services/ubicacionesService';
-import { obtenerAnimales, formatearAnimalParaUI } from '@/services/animalesService';
+import { obtenerLotePorId, Lote, eliminarLote, EstadoLote, agregarAnimalALote, removerAnimalDeLote } from '@/services/ubicacionesService';
+import { obtenerAnimales, formatearAnimalParaUI, AnimalUI } from '@/services/animalesService';
 import { validarImagenBase64 } from '@/services/imagenesService';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -57,8 +62,13 @@ export default function DetallesLote() {
   const router = useRouter();
   const [lote, setLote] = useState<Lote | null>(null);
   const [animalesEnLote, setAnimalesEnLote] = useState<any[]>([]);
+  const [todosAnimales, setTodosAnimales] = useState<AnimalUI[]>([]);
+  const [animalesDisponibles, setAnimalesDisponibles] = useState<AnimalUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [eliminando, setEliminando] = useState(false);
+  const [modalSeleccionarAnimal, setModalSeleccionarAnimal] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
 
   useEffect(() => {
     cargarLoteYAnimales();
@@ -74,21 +84,50 @@ export default function DetallesLote() {
       const loteData = await obtenerLotePorId(loteId as string);
       setLote(loteData);
 
+      // Cargar todos los animales
+      const todosAnimalesData = await obtenerAnimales();
+      const animalesFormateados = todosAnimalesData.map(animal => 
+        formatearAnimalParaUI(animal)
+      );
+      setTodosAnimales(animalesFormateados);
+
       if (loteData) {
-        const todosAnimales = await obtenerAnimales();
-        const animalesFiltrados = todosAnimales.filter(animal =>
+        // Filtrar animales que están en este lote
+        const animalesFiltrados = animalesFormateados.filter(animal =>
           loteData.animales.includes(animal.id)
         );
-        const animalesFormateados = animalesFiltrados.map(animal =>
-          formatearAnimalParaUI(animal)
+        setAnimalesEnLote(animalesFiltrados);
+
+        // Filtrar animales disponibles (no están en este lote)
+        const animalesDisponiblesFiltrados = animalesFormateados.filter(animal =>
+          !loteData.animales.includes(animal.id)
         );
-        setAnimalesEnLote(animalesFormateados);
+        setAnimalesDisponibles(animalesDisponiblesFiltrados);
       }
     } catch (error) {
       console.error('Error al cargar lote:', error);
       Alert.alert('Error', 'No se pudo cargar la información del lote');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAgregarAnimal = async (animalId: string) => {
+    try {
+      if (!lote) return;
+
+      setBuscando(true);
+      await agregarAnimalALote(lote.id, animalId);
+      
+      // Recargar los datos
+      await cargarLoteYAnimales();
+      
+      Alert.alert('✅ Éxito', 'Animal agregado al lote correctamente');
+    } catch (error: any) {
+      console.error('Error al agregar animal al lote:', error);
+      Alert.alert('Error', error.message || 'No se pudo agregar el animal al lote');
+    } finally {
+      setBuscando(false);
     }
   };
 
@@ -123,6 +162,37 @@ export default function DetallesLote() {
       ]
     );
   };
+
+  const handleRemoverAnimal = (animalId: string, animalNombre: string) => {
+    Alert.alert(
+      'Remover Animal',
+      `¿Estás seguro de que quieres remover a ${animalNombre} de este lote?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!lote) return;
+              await removerAnimalDeLote(lote.id, animalId);
+              await cargarLoteYAnimales();
+              Alert.alert('✅ Éxito', 'Animal removido del lote correctamente');
+            } catch (error: any) {
+              console.error('Error al remover animal del lote:', error);
+              Alert.alert('Error', error.message || 'No se pudo remover el animal del lote');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const animalesFiltrados = animalesDisponibles.filter(animal =>
+    animal.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase()) ||
+    animal.codigo.toLowerCase().includes(terminoBusqueda.toLowerCase()) ||
+    animal.raza?.toLowerCase().includes(terminoBusqueda.toLowerCase())
+  );
 
   // Función para obtener la información del estado - MEJORADA
   const getEstadoInfo = (estado: EstadoLote) => {
@@ -298,7 +368,7 @@ export default function DetallesLote() {
             <Text style={styles.sectionTitle}>Animales en el Lote</Text>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => router.push('/AgregarAnimal')}
+              onPress={() => setModalSeleccionarAnimal(true)}
             >
               <Plus size={18} color={COLORS.primary} />
               <Text style={styles.addButtonText}>Agregar</Text>
@@ -310,17 +380,14 @@ export default function DetallesLote() {
               <Text style={styles.emptyEmoji}>🐄</Text>
               <Text style={styles.emptyTitle}>No hay animales en este lote</Text>
               <Text style={styles.emptySubtitle}>
-                Agrega animales para comenzar a gestionar este lote
+                Agrega animales existentes al lote
               </Text>
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => router.push({
-                  pathname: '/AgregarAnimal',
-                  params: { loteId: lote.id } // Pasar el ID del lote actual
-                })}
+                onPress={() => setModalSeleccionarAnimal(true)}
               >
                 <Plus size={18} color={COLORS.primary} />
-                <Text style={styles.addButtonText}>Agregar</Text>
+                <Text style={styles.addButtonText}>Seleccionar Animales</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -358,6 +425,17 @@ export default function DetallesLote() {
                       <Text style={styles.animalAge}>{animal.edad}</Text>
                     </View>
                   </View>
+
+                  {/* Botón para remover animal del lote */}
+                  <TouchableOpacity 
+                    style={styles.removeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleRemoverAnimal(animal.id, animal.nombre);
+                    }}
+                  >
+                    <X size={16} color={COLORS.error} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               ))}
             </View>
@@ -408,7 +486,7 @@ export default function DetallesLote() {
           </View>
         </View>
 
-        {/* Botones de Acción - Eliminado el duplicado de editar */}
+        {/* Botones de Acción */}
         <View style={styles.section}>
           <TouchableOpacity
             style={[styles.button, styles.dangerButton]}
@@ -430,6 +508,91 @@ export default function DetallesLote() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Modal para seleccionar animales */}
+      <Modal
+        visible={modalSeleccionarAnimal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Seleccionar Animales</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => {
+                setModalSeleccionarAnimal(false);
+                setTerminoBusqueda('');
+              }}
+            >
+              <X size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Barra de búsqueda */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Search size={20} color={COLORS.gray} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar animales por nombre, código o raza..."
+                value={terminoBusqueda}
+                onChangeText={setTerminoBusqueda}
+                placeholderTextColor={COLORS.gray}
+              />
+            </View>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {animalesFiltrados.length === 0 ? (
+              <View style={styles.emptyModalState}>
+                <Text style={styles.emptyModalText}>
+                  {terminoBusqueda ? 'No se encontraron animales' : 'No hay animales disponibles'}
+                </Text>
+                <Text style={styles.emptyModalSubtext}>
+                  {terminoBusqueda ? 'Intenta con otros términos de búsqueda' : 'Todos los animales están asignados a este u otros lotes'}
+                </Text>
+              </View>
+            ) : (
+              animalesFiltrados.map((animal) => (
+                <TouchableOpacity
+                  key={animal.id}
+                  style={styles.animalModalItem}
+                  onPress={() => handleAgregarAnimal(animal.id)}
+                  disabled={buscando}
+                >
+                  <View style={styles.animalModalImage}>
+                    {renderAnimalImage(animal)}
+                  </View>
+                  
+                  <View style={styles.animalModalInfo}>
+                    <Text style={styles.animalModalName}>{animal.nombre}</Text>
+                    <Text style={styles.animalModalCode}>{animal.codigo}</Text>
+                    <View style={styles.animalModalDetails}>
+                      <Text style={styles.animalModalDetail}>{animal.raza}</Text>
+                      <Text style={styles.animalModalDetail}>{animal.edad}</Text>
+                    </View>
+                    <Text style={[
+                      styles.animalModalStatus,
+                      { color: getStatusColor(animal.estado) }
+                    ]}>
+                      {animal.estado}
+                    </Text>
+                  </View>
+
+                  <View style={styles.animalModalAction}>
+                    {buscando ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (
+                      <Plus size={20} color={COLORS.primary} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -668,6 +831,7 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     borderWidth: 1,
     borderColor: '#E8F0F2',
+    position: 'relative',
   },
   animalImageContainer: {
     position: 'relative',
@@ -717,6 +881,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
   },
   animalInfo: {
     flex: 1,
@@ -783,5 +960,116 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: SPACING.lg,
+  },
+  // Nuevos estilos para el modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  closeButton: {
+    padding: SPACING.xs,
+  },
+  searchContainer: {
+    padding: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 12,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+    fontSize: 16,
+    color: COLORS.primary,
+  },
+  modalContent: {
+    flex: 1,
+    padding: SPACING.lg,
+  },
+  animalModalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    padding: SPACING.md,
+    borderRadius: 12,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  animalModalImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: SPACING.md,
+  },
+  animalModalInfo: {
+    flex: 1,
+  },
+  animalModalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  animalModalCode: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
+  animalModalDetails: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  animalModalDetail: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginRight: SPACING.md,
+  },
+  animalModalStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  animalModalAction: {
+    padding: SPACING.sm,
+  },
+  emptyModalState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  emptyModalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  emptyModalSubtext: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
   },
 });
