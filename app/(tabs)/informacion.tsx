@@ -385,8 +385,8 @@ export default function InformacionScreen() {
               
               if (selectedTab === 'Animales') handleAgregarAnimal();
               else if (selectedTab === 'Lotes') handleAgregarLote();
-              else if (selectedTab === 'Guías')
-                Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
+              // else if (selectedTab === 'Guías')
+              //   Alert.alert('Próximamente', 'Aquí podrás agregar guías.');
             }}>
             <Plus color="#005246" size={28} />
           </TouchableOpacity>
@@ -394,7 +394,7 @@ export default function InformacionScreen() {
 
         {/* 🔹 Pestañas */}
         <View style={styles.tabsContainer}>
-          {['Animales', 'Lotes', 'Guías'].map((tab) => (
+          {['Animales', 'Lotes'/*, 'Guías'*/].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, selectedTab === tab && styles.tabActive]}
