@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,6 +84,24 @@ export default function EditarAnimalScreen() {
     agregarPeso,
     eliminarItem,
   } = useAnimalFormEdit();
+
+  const handleLoteChange = (item: any) => {
+  if (item.value && form['Lote o potrero actual'] && form['Lote o potrero actual'] !== item.value) {
+    Alert.alert(
+      'Cambio de lote',
+      'El animal será movido a este lote y removido de cualquier otro lote donde se encuentre.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Continuar', 
+          onPress: () => handleChange('Lote o potrero actual', item.value)
+        }
+      ]
+    );
+  } else {
+    handleChange('Lote o potrero actual', item.value);
+  }
+};
 
   // ⚠️ EL RETURN DE LOADING DEBE IR DESPUÉS DE TODOS LOS HOOKS
   if (loading) {
@@ -266,7 +285,7 @@ export default function EditarAnimalScreen() {
                 valueField="value"
                 placeholder={cargandoLotes ? "Cargando lotes..." : "Seleccione lote"}
                 value={form['Lote o potrero actual']}
-                onChange={(item) => handleChange('Lote o potrero actual', item.value)}
+                onChange={handleLoteChange}
                 disable={cargandoLotes}
               />
               {cargandoLotes && (

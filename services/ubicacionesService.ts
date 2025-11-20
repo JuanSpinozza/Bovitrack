@@ -287,12 +287,16 @@ export const agregarAnimalALote = async (loteId: string, animalId: string): Prom
       throw new Error('No se pueden agregar animales a un lote inactivo');
     }
 
-    // Evitar duplicados
+    // Verificar si el animal ya está en este lote
     if (lote.animales.includes(animalId)) {
-      console.log('✅ El animal ya está en el lote');
+      console.log('✅ El animal ya está en este lote');
       return;
     }
 
+    // 🔹 NUEVO: Verificar si el animal está en otros lotes y removerlo
+    await removerAnimalDeTodosLotes(animalId, loteId);
+
+    // Agregar al nuevo lote
     const nuevosAnimales = [...lote.animales, animalId];
     await actualizarLote(loteId, { animales: nuevosAnimales });
     
@@ -300,6 +304,35 @@ export const agregarAnimalALote = async (loteId: string, animalId: string): Prom
   } catch (error) {
     console.error(`❌ Error al agregar animal al lote:`, error);
     throw new Error('No se pudo agregar el animal al lote');
+  }
+};
+
+export const removerAnimalDeTodosLotes = async (animalId: string, loteExcluido?: string): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    const todosLotes = await obtenerLotes();
+    
+    // Buscar lotes que contengan al animal (excepto el lote excluido si se especifica)
+    const lotesConAnimal = todosLotes.filter(lote => 
+      lote.animales.includes(animalId) && lote.id !== loteExcluido
+    );
+
+    // Remover el animal de cada lote encontrado
+    for (const lote of lotesConAnimal) {
+      await removerAnimalDeLote(lote.id, animalId);
+      console.log(`✅ Animal ${animalId} removido del lote ${lote.id}`);
+    }
+
+    if (lotesConAnimal.length > 0) {
+      console.log(`✅ Animal ${animalId} removido de ${lotesConAnimal.length} lotes`);
+    }
+  } catch (error) {
+    console.error(`❌ Error al remover animal de todos los lotes:`, error);
+    throw new Error('No se pudo remover el animal de los lotes');
   }
 };
 
@@ -401,26 +434,50 @@ export const formatearLoteParaUI = (lote: Lote) => {
   };
 };
 
-// 🔹 Función para obtener lotes vacíos
-export const obtenerLotesVacios = async (): Promise<Lote[]> => {
+export const obtenerLoteDeAnimal = async (animalId: string): Promise<Lote | null> => {
   try {
-    const lotes = await obtenerLotes();
-    return lotes.filter(lote => lote.animales.length === 0);
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    const todosLotes = await obtenerLotes();
+    const loteConAnimal = todosLotes.find(lote => 
+      lote.animales.includes(animalId)
+    );
+
+    return loteConAnimal || null;
   } catch (error) {
-    console.error('❌ Error al obtener lotes vacíos:', error);
-    throw new Error('No se pudieron obtener los lotes vacíos');
+    console.error(`❌ Error al obtener lote del animal ${animalId}:`, error);
+    throw new Error('No se pudo obtener el lote del animal');
   }
 };
 
-// 🔹 Función para obtener lotes activos con capacidad
-export const obtenerLotesActivosConCapacidad = async (): Promise<Lote[]> => {
+export const verificarLotesDeAnimal = async (animalId: string): Promise<string[]> => {
   try {
-    const lotes = await obtenerLotes();
-    return lotes.filter(lote => 
-      lote.estado === 'Activo' && lote.animales.length > 0
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    const todosLotes = await obtenerLotes();
+    const lotesConAnimal = todosLotes.filter(lote => 
+      lote.animales.includes(animalId)
     );
+
+    const nombresLotes = lotesConAnimal.map(lote => lote.nombre);
+    
+    if (lotesConAnimal.length > 1) {
+      console.warn(`⚠️ ADVERTENCIA: Animal ${animalId} está en ${lotesConAnimal.length} lotes:`, nombresLotes);
+    } else if (lotesConAnimal.length === 1) {
+      console.log(`✅ Animal ${animalId} está en 1 lote: ${nombresLotes[0]}`);
+    } else {
+      console.log(`ℹ️ Animal ${animalId} no está en ningún lote`);
+    }
+
+    return nombresLotes;
   } catch (error) {
-    console.error('❌ Error al obtener lotes activos:', error);
-    throw new Error('No se pudieron obtener los lotes activos');
+    console.error(`❌ Error al verificar lotes del animal:`, error);
+    return [];
   }
 };

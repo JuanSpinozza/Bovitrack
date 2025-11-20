@@ -228,7 +228,7 @@ export const useAnimalForm = (loteId?: string) => {
             // Agregar animal y obtener el ID
             const animalId = await agregarAnimal(animalData);
 
-            // Si se asignó un lote, agregar el animal al lote
+            // Si se asignó un lote, agregar el animal al lote (esto automáticamente lo removerá de otros lotes)
             if (form['Lote o potrero actual']) {
                 try {
                     await agregarAnimalALote(form['Lote o potrero actual'], animalId);

@@ -8,10 +8,11 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { Star, X, Plus } from 'lucide-react-native';
-import { SafeAreaView,useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAnimalForm } from '../hooks/useAnimalForm';
 import Header from '../components/AnimalHeader';
 import PhotoSection from '../components/sections/PhotoSection';
@@ -33,7 +34,7 @@ import { useLocalSearchParams } from 'expo-router';
 export default function AgregarAnimalScreen() {
   const insets = useSafeAreaInsets();
   const { loteId } = useLocalSearchParams();
-  
+
   // ⚠️ TODOS LOS HOOKS DEBEN LLAMARSE INCONDICIONALMENTE AL INICIO
   const {
     form,
@@ -80,6 +81,24 @@ export default function AgregarAnimalScreen() {
     agregarPeso,
     eliminarItem,
   } = useAnimalForm(loteId as string);
+
+  const handleLoteChange = (item: any) => {
+    if (item.value && form['Lote o potrero actual'] && form['Lote o potrero actual'] !== item.value) {
+      Alert.alert(
+        'Cambio de lote',
+        'El animal será movido a este lote y removido de cualquier otro lote donde se encuentre.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Continuar',
+            onPress: () => handleChange('Lote o potrero actual', item.value)
+          }
+        ]
+      );
+    } else {
+      handleChange('Lote o potrero actual', item.value);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -255,7 +274,7 @@ export default function AgregarAnimalScreen() {
                 valueField="value"
                 placeholder={cargandoLotes ? "Cargando lotes..." : "Seleccione lote"}
                 value={form['Lote o potrero actual']}
-                onChange={(item) => handleChange('Lote o potrero actual', item.value)}
+                onChange={handleLoteChange}
                 disable={cargandoLotes}
               />
               {cargandoLotes && (

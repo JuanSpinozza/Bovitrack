@@ -241,86 +241,80 @@ export const useAnimalFormEdit = () => {
   };
 
   const handleGuardar = async () => {
-    if (!form['ID o código']?.trim() || !form['Nombre']?.trim()) {
-      Alert.alert('Error', 'El ID y el nombre son obligatorios');
-      return;
+  if (!form['ID o código']?.trim() || !form['Nombre']?.trim()) {
+    Alert.alert('Error', 'El ID y el nombre son obligatorios');
+    return;
+  }
+
+  setSaving(true);
+  try {
+    let fotoBase64 = '';
+    
+    if (foto && !foto.startsWith('data:image')) {
+      try {
+        fotoBase64 = await convertirImagenABase64(foto);
+      } catch (error) {
+        console.error('❌ Error al convertir imagen:', error);
+        Alert.alert('Advertencia', 'La imagen no pudo ser procesada, pero el animal se guardará sin foto.');
+      }
+    } else {
+      fotoBase64 = foto || '';
     }
 
-    setSaving(true);
-    try {
-      let fotoBase64 = '';
+    const animalData = {
+      ...form,
+      sexo,
+      foto: fotoBase64,
+      vacunas,
+      desparasitaciones,
+      tratamientos,
+      enfermedades,
+      registrosPeso,
+    };
 
-      // Solo convertir la imagen si es nueva (no es base64 ya)
-      if (foto && !foto.startsWith('data:image')) {
+    if (typeof animalId !== 'string') throw new Error('ID inválido');
+    
+    // Obtener el animal actual para comparar el lote anterior
+    const animalActual = await obtenerAnimalPorId(animalId);
+    const loteAnterior = animalActual?.['Lote o potrero actual'] || '';
+    const loteNuevo = form['Lote o potrero actual'];
+
+    // Actualizar el animal primero
+    await actualizarAnimal(animalId, animalData);
+
+    // Manejar cambios en la asignación de lote
+    if (loteAnterior !== loteNuevo) {
+      // Si se asignó un nuevo lote, usar agregarAnimalALote que maneja la remoción automática
+      if (loteNuevo) {
         try {
-          fotoBase64 = await convertirImagenABase64(foto);
+          await agregarAnimalALote(loteNuevo, animalId);
+          console.log(`✅ Animal asignado al nuevo lote: ${loteNuevo}`);
         } catch (error) {
-          console.error('❌ Error al convertir imagen:', error);
-          Alert.alert('Advertencia', 'La imagen no pudo ser procesada, pero el animal se guardará sin foto.');
+          console.error('Error al asignar animal al nuevo lote:', error);
         }
       } else {
-        // Si ya es base64 o no hay foto, usar la existente
-        fotoBase64 = foto || '';
-      }
-
-      const animalData = {
-        ...form,
-        sexo,
-        foto: fotoBase64,
-        vacunas,
-        desparasitaciones,
-        tratamientos,
-        enfermedades,
-        registrosPeso,
-      };
-
-      if (typeof animalId !== 'string') throw new Error('ID inválido');
-
-      // Obtener el animal actual para comparar el lote anterior
-      const animalActual = await obtenerAnimalPorId(animalId);
-      const loteAnterior = animalActual?.['Lote o potrero actual'] || '';
-      const loteNuevo = form['Lote o potrero actual'];
-
-      // Actualizar el animal primero
-      await actualizarAnimal(animalId, animalData);
-
-      // Manejar cambios en la asignación de lote
-      if (loteAnterior !== loteNuevo) {
-        // Remover del lote anterior si existía
-        if (loteAnterior) {
-          try {
-            await removerAnimalDeLote(loteAnterior, animalId);
-            console.log(`✅ Animal removido del lote anterior: ${loteAnterior}`);
-          } catch (error) {
-            console.error('Error al remover animal del lote anterior:', error);
-            // No fallar la operación principal por esto
-          }
-        }
-
-        // Agregar al nuevo lote si se especificó uno
-        if (loteNuevo) {
-          try {
-            await agregarAnimalALote(loteNuevo, animalId);
-            console.log(`✅ Animal agregado al nuevo lote: ${loteNuevo}`);
-          } catch (error) {
-            console.error('Error al asignar animal al nuevo lote:', error);
-            // No fallar la operación principal por esto
-          }
+        // Si se quitó el lote (loteNuevo está vacío), remover de todos los lotes
+        try {
+          await removerAnimalDeTodosLotes(animalId);
+          console.log(`✅ Animal removido de todos los lotes`);
+        } catch (error) {
+          console.error('Error al remover animal de todos los lotes:', error);
         }
       }
-
-      Alert.alert(
-        '✅ Animal actualizado',
-        `${form.Nombre} actualizado correctamente.`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } catch (error: any) {
-      console.error('❌ Error al actualizar:', error);
-      Alert.alert('Error', error.message || 'No se pudo actualizar el animal. Inténtalo de nuevo.');
-    } finally {
-      setSaving(false);
     }
-  };
+
+    Alert.alert(
+      '✅ Animal actualizado', 
+      `${form.Nombre} actualizado correctamente.`,
+      [{ text: 'OK', onPress: () => router.back() }]
+    );
+  } catch (error: any) {
+    console.error('❌ Error al actualizar:', error);
+    Alert.alert('Error', error.message || 'No se pudo actualizar el animal. Inténtalo de nuevo.');
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleEliminar = () => {
     Alert.alert(
