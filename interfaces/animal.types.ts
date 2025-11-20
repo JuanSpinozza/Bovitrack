@@ -12,13 +12,19 @@ export interface AnimalForm {
   'Lote o potrero actual': string;
   'Propietario o encargado': string;
   'Fecha de ingreso al hato': string;
-    'Estado reproductivo': string;
-  'Estado productivo': string; // Nuevo campo
+  'Estado reproductivo': string;
+  'Estado productivo': string;
   'Fecha del último celo': string;
   'Fecha de servicio o inseminación': string;
   'ID del toro utilizado': string;
   'Número de partos': string;
   'Fecha del último parto': string;
+  
+  // Nuevos campos para producción de leche
+  'Producción diaria de leche'?: string;
+  'Calidad de leche'?: string;
+  'Días en lactancia'?: string;
+  'Fecha inicio lactancia'?: string;
 
   condicionCorporal: number;
   proposito: string;

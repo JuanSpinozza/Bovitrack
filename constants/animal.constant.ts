@@ -11,6 +11,7 @@ export const opcionesEstadoReproductivo = [
   { label: 'En espera de diagnóstico', value: 'En espera de diagnóstico' },
   { label: 'Gestante', value: 'Gestante' },
   { label: 'Problema reproductivo', value: 'Problema reproductivo' },
+  { label: 'Parida/Lactante', value: 'Lactante' }
 ];
 
 export const opcionesEstadoProductivo = [
@@ -74,4 +75,18 @@ export const camposBasicos = [
 export const camposFechas = [
   { key: 'Fecha de nacimiento', required: false, placeholder: 'YYYY-MM-DD', type: 'date' },
   { key: 'Fecha de ingreso al hato', label: 'Fecha de ingreso al hato (opcional)', required: false, placeholder: 'YYYY-MM-DD', type: 'date' },
+];
+
+export const camposProduccionLeche = [
+  {
+    key: 'Producción diaria de leche',
+    placeholder: 'Litros por día',
+    required: false
+  },
+  {
+    key: 'Días en lactancia', 
+    placeholder: 'Días desde el parto',
+    required: false
+  },
+  // ... otros campos
 ];

@@ -29,6 +29,10 @@ const initialFormState: AnimalForm = {
     'ID del toro utilizado': '',
     'Número de partos': '',
     'Fecha del último parto': '',
+      'Producción diaria de leche': '',
+  'Calidad de leche': '',
+  'Días en lactancia': '',
+  'Fecha inicio lactancia': '',
     condicionCorporal: 3,
     proposito: '',
 };

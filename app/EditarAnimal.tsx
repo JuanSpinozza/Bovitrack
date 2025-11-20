@@ -6,13 +6,12 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Alert,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Plus, X } from 'lucide-react-native';
 import { useAnimalFormEdit } from '../hooks/useAnimalFormEdit';
@@ -35,7 +34,7 @@ import {
 export default function EditarAnimalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  
+
   // ⚠️ TODOS LOS HOOKS DEBEN LLAMARSE INCONDICIONALMENTE AL INICIO
   const {
     form,
@@ -86,22 +85,22 @@ export default function EditarAnimalScreen() {
   } = useAnimalFormEdit();
 
   const handleLoteChange = (item: any) => {
-  if (item.value && form['Lote o potrero actual'] && form['Lote o potrero actual'] !== item.value) {
-    Alert.alert(
-      'Cambio de lote',
-      'El animal será movido a este lote y removido de cualquier otro lote donde se encuentre.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Continuar', 
-          onPress: () => handleChange('Lote o potrero actual', item.value)
-        }
-      ]
-    );
-  } else {
-    handleChange('Lote o potrero actual', item.value);
-  }
-};
+    if (item.value && form['Lote o potrero actual'] && form['Lote o potrero actual'] !== item.value) {
+      Alert.alert(
+        'Cambio de lote',
+        'El animal será movido a este lote y removido de cualquier otro lote donde se encuentre.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Continuar',
+            onPress: () => handleChange('Lote o potrero actual', item.value)
+          }
+        ]
+      );
+    } else {
+      handleChange('Lote o potrero actual', item.value);
+    }
+  };
 
   // ⚠️ EL RETURN DE LOADING DEBE IR DESPUÉS DE TODOS LOS HOOKS
   if (loading) {
@@ -115,13 +114,13 @@ export default function EditarAnimalScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <EditHeader onDelete={handleEliminar} />
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView 
-          style={styles.container} 
+        <ScrollView
+          style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -172,7 +171,7 @@ export default function EditarAnimalScreen() {
                 />
               </View>
             ))}
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Propósito del Animal</Text>
               <Dropdown
@@ -228,8 +227,8 @@ export default function EditarAnimalScreen() {
                 />
               </View>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.addItemButton}
               onPress={() => setModalPeso(true)}
             >
@@ -292,7 +291,7 @@ export default function EditarAnimalScreen() {
                 <Text style={styles.helperText}>Cargando lotes disponibles...</Text>
               )}
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Propietario o encargado</Text>
               <TextInput
@@ -313,11 +312,67 @@ export default function EditarAnimalScreen() {
               />
             </View>
           </View>
+          {sexo === 'Hembra' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Producción de Leche</Text>
 
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.label}>Producción diaria (litros)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej: 25"
+                    keyboardType="numeric"
+                    value={form['Producción diaria de leche'] || ''}
+                    onChangeText={(text) => handleChange('Producción diaria de leche', text)}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>Días en lactancia</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej: 120"
+                    keyboardType="numeric"
+                    value={form['Días en lactancia'] || ''}
+                    onChangeText={(text) => handleChange('Días en lactancia', text)}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.label}>Calidad de leche</Text>
+                  <Dropdown
+                    style={styles.dropdown}
+                    data={[
+                      { label: 'Excelente', value: 'Excelente' },
+                      { label: 'Buena', value: 'Buena' },
+                      { label: 'Regular', value: 'Regular' },
+                      { label: 'Baja', value: 'Baja' },
+                    ]}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Seleccione calidad"
+                    value={form['Calidad de leche']}
+                    onChange={(item) => handleChange('Calidad de leche', item.value)}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>Inicio lactancia</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    value={form['Fecha inicio lactancia'] || ''}
+                    onChangeText={(text) => handleChange('Fecha inicio lactancia', text)}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
           {/* Botones de acción */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity 
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={handleGuardar}
               disabled={saving}
             >
@@ -325,14 +380,15 @@ export default function EditarAnimalScreen() {
                 {saving ? 'Guardando...' : 'Guardar Cambios'}
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => router.back()}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
 

@@ -302,7 +302,63 @@ export default function AgregarAnimalScreen() {
               />
             </View>
           </View>
+          {sexo === 'Hembra' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Producción de Leche</Text>
 
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.label}>Producción diaria (litros)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej: 25"
+                    keyboardType="numeric"
+                    value={form['Producción diaria de leche'] || ''}
+                    onChangeText={(text) => handleChange('Producción diaria de leche', text)}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>Días en lactancia</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej: 120"
+                    keyboardType="numeric"
+                    value={form['Días en lactancia'] || ''}
+                    onChangeText={(text) => handleChange('Días en lactancia', text)}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.label}>Calidad de leche</Text>
+                  <Dropdown
+                    style={styles.dropdown}
+                    data={[
+                      { label: 'Excelente', value: 'Excelente' },
+                      { label: 'Buena', value: 'Buena' },
+                      { label: 'Regular', value: 'Regular' },
+                      { label: 'Baja', value: 'Baja' },
+                    ]}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Seleccione calidad"
+                    value={form['Calidad de leche']}
+                    onChange={(item) => handleChange('Calidad de leche', item.value)}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.label}>Inicio lactancia</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    value={form['Fecha inicio lactancia'] || ''}
+                    onChangeText={(text) => handleChange('Fecha inicio lactancia', text)}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
           {/* Botón Guardar */}
           <TouchableOpacity
             style={[styles.saveButton, loading && styles.saveButtonDisabled]}
@@ -313,6 +369,7 @@ export default function AgregarAnimalScreen() {
               {loading ? 'Guardando...' : 'Guardar Animal'}
             </Text>
           </TouchableOpacity>
+
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -356,6 +413,7 @@ export default function AgregarAnimalScreen() {
         onClose={() => setModalEnfermedad(false)}
         onConfirm={agregarEnfermedad}
       />
+
     </SafeAreaView>
   );
 }

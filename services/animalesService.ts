@@ -36,6 +36,10 @@ export interface Animal {
   'ID del toro utilizado'?: string;
   'Número de partos'?: string;
   'Fecha del último parto'?: string;
+    'Producción diaria de leche'?: string;
+  'Calidad de leche'?: string;
+  'Días en lactancia'?: string;
+  'Fecha inicio lactancia'?: string;
   
   // Nuevos campos del formulario
   'condicionCorporal': number;

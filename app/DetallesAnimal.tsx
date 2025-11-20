@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Edit3, Calendar, Scale, MapPin, User, Heart, Baby, Droplets } from 'lucide-react-native';
+import { ArrowLeft, Edit3, Calendar, Scale, MapPin, User, Heart, Baby, Droplets, Milk } from 'lucide-react-native';
 import { obtenerAnimalPorId, Animal, calcularEdad, obtenerUltimoPeso } from '@/services/animalesService';
+
 
 export default function DetallesAnimal() {
   const { animalId } = useLocalSearchParams();
@@ -73,7 +74,7 @@ export default function DetallesAnimal() {
             <ArrowLeft size={24} color="#005246" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalles del Animal</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => router.push({
               pathname: '/EditarAnimal',
@@ -89,8 +90,8 @@ export default function DetallesAnimal() {
           {/* Imagen */}
           <View style={styles.imageContainer}>
             {esImagenBase64 ? (
-              <Image 
-                source={{ uri: animal.foto }} 
+              <Image
+                source={{ uri: animal.foto }}
                 style={styles.animalImage}
                 resizeMode="cover"
               />
@@ -114,7 +115,7 @@ export default function DetallesAnimal() {
         {/* Información Básica */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Básica</Text>
-          
+
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <View style={styles.iconContainer}>
@@ -123,8 +124,8 @@ export default function DetallesAnimal() {
               <View>
                 <Text style={styles.infoLabel}>Edad</Text>
                 <Text style={styles.infoValue}>
-                  {animal['Fecha de nacimiento'] 
-                    ? calcularEdad(animal['Fecha de nacimiento']) 
+                  {animal['Fecha de nacimiento']
+                    ? calcularEdad(animal['Fecha de nacimiento'])
                     : 'No especificada'
                   }
                 </Text>
@@ -194,7 +195,7 @@ export default function DetallesAnimal() {
         {animal.sexo === 'Hembra' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Información Reproductiva</Text>
-            
+
             <View style={styles.infoGrid}>
               {animal['Estado reproductivo'] && (
                 <View style={styles.infoItem}>
@@ -240,7 +241,7 @@ export default function DetallesAnimal() {
         {/* Información Adicional */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Adicional</Text>
-          
+
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Lugar de Nacimiento</Text>
             <Text style={styles.detailValue}>
@@ -269,7 +270,54 @@ export default function DetallesAnimal() {
             </Text>
           </View>
         </View>
+{/* Información de Producción de Leche (solo para hembras) */}
+      {animal.sexo === 'Hembra' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Producción de Leche</Text>
 
+          <View style={styles.infoGrid}>
+            {animal['Producción diaria de leche'] && (
+              <View style={styles.infoItem}>
+                <View style={styles.iconContainer}>
+                  <Droplets size={20} color="#005246" />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Producción Diaria</Text>
+                  <Text style={styles.infoValue}>
+                    {animal['Producción diaria de leche']} litros
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {animal['Días en lactancia'] && (
+              <View style={styles.infoItem}>
+                <View style={styles.iconContainer}>
+                  <Calendar size={20} color="#005246" />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Días en Lactancia</Text>
+                  <Text style={styles.infoValue}>{animal['Días en lactancia']}</Text>
+                </View>
+              </View>
+            )}
+
+            {animal['Calidad de leche'] && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Calidad de Leche</Text>
+                <Text style={styles.detailValue}>{animal['Calidad de leche']}</Text>
+              </View>
+            )}
+
+            {animal['Fecha inicio lactancia'] && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Inicio de Lactancia</Text>
+                <Text style={styles.detailValue}>{animal['Fecha inicio lactancia']}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
         {/* Estadísticas Rápidas */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -285,6 +333,7 @@ export default function DetallesAnimal() {
             <Text style={styles.statLabel}>Pesajes</Text>
           </View>
         </View>
+        
       </ScrollView>
     </SafeAreaView>
   );
